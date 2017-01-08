@@ -44,6 +44,8 @@ int ParseCommand(char ControlByte, String ControlArgument)
 	{
 		return 1; // Command Not Found
 	}
+
+	return 0;
 }
 
 // Return Success = 0, Failure = 1
@@ -86,7 +88,7 @@ int CheckForCommands()
 			}
 		}
 
-		ParseCommand(ControlByte, ControlArgument);
+		return ParseCommand(ControlByte, ControlArgument);
 	}
 
 	return 0;
