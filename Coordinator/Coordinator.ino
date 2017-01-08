@@ -6,7 +6,7 @@ Upon failure, the motor controller tells the coordinator where
 it thinks the motors went.
 */
 #define MOTOR_PORT Serial1
-enum MotorControls{RotateAbsolute = 0, MoveToPosition = 1};
+enum MotorControls{RotateAbsolute = 0, MoveToPosition = 1, Stop = 2};
 enum MotorErrors{MotionComplete = 0, RotationFailure = 1, MoveToPositionFailure = 2};
 
 /* 
