@@ -1,6 +1,8 @@
 // Global Motion Controls
 boolean Armed = false;
 boolean InMotion = false;
+long position = 0; // Position is relative and resets after motion
+int rotation = 0; // Rotation is held globally and absolute.
 
 
 /*
