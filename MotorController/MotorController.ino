@@ -25,6 +25,8 @@ int rotation = 0; // Rotation is held globally and absolute.
 int allowableRotationError = 3;
 MotionValue curMotion;
 
+int ARMEDLEDPIN = 13;
+
 long updateInterval = 500;
 long lastUpdate = 0;
 
@@ -212,6 +214,8 @@ int DoMotion()
 {
 	if(Armed)
 	{
+		digitalWrite(ARMEDLEDPIN, HIGH);
+
 		if(MotionQueued)
 		{
 			return DetermineMotionTypeAndMove();
@@ -223,6 +227,8 @@ int DoMotion()
 	}
 	else
 	{
+		digitalWrite(ARMEDLEDPIN, LOW);
+
 		StopAllMotors();
 		return 0;
 	}
@@ -232,6 +238,9 @@ int DoMotion()
 
 void setup()
 {
+	pinMode(ARMEDLEDPIN, OUTPUT);
+	digitalWrite(ARMEDLEDPIN, LOW);
+
 	COORDINATOR_PORT.begin(9600);
 }
 
