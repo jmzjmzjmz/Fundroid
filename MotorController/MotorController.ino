@@ -27,7 +27,7 @@ MotionValue curMotion;
 
 int ARMEDLEDPIN = 13;
 
-long updateInterval = 500;
+long updateInterval = 1000;
 long lastUpdate = 0;
 
 // Return Success = 0, Failure = 1
@@ -162,8 +162,12 @@ int DoRotationMove()
 	{
 		#ifdef SIMULATION
 		rotation = curMotion.position;
+		#else
+
 		#endif
 	}
+
+	return 0;
 }
 
 boolean IsPositionAcceptable()
@@ -192,8 +196,12 @@ int DoPositionMove()
 	{
 		#ifdef SIMULATION
 		position = curMotion.position;
+		#else
+
 		#endif
 	}
+
+	return 0;
 }
 
 int DetermineMotionTypeAndMove()
@@ -249,9 +257,13 @@ void loop()
 	CheckForCommands();
 	int status = DoMotion();
 
-	// if(lastUpdate - millis() > updateInterval)
-	// {
-	// 	COORDINATOR_PORT.print(status);
-	// 	COORDINATOR_PORT
-	// }
+	// A Status of 1 means in motion
+	// A status greater than 1 means error
+	// A status of 0 means ready for next command
+	if(millis() - lastUpdate > updateInterval)
+	{
+		lastUpdate = millis();
+		COORDINATOR_PORT.print(status);
+		COORDINATOR_PORT.print('&');
+	}
 }
