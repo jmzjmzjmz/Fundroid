@@ -20,8 +20,13 @@ struct MotionValue
 boolean Armed = false;
 boolean MotionQueued = false;
 long position = 0; // Position is relative and resets after motion
+long allowablePositionError = 3;
 int rotation = 0; // Rotation is held globally and absolute.
+int allowableRotationError = 3;
 MotionValue curMotion;
+
+long updateInterval = 500;
+long lastUpdate = 0;
 
 // Return Success = 0, Failure = 1
 int ParseCommand(char ControlByte, String ControlArgument)
@@ -129,9 +134,19 @@ void StopAllMotors()
 
 }
 
+boolean IsRotationAcceptable()
+{
+	if(rotation > curMotion.position - allowableRotationError && rotation < curMotion.position + allowableRotationError)
+	{
+		return true;
+	}
+
+	return false;
+}
+
 int DoRotationMove()
 {
-	if(rotation == curMotion.position)
+	if(IsRotationAcceptable())
 	{
 		MotionQueued = false;
 
@@ -149,9 +164,19 @@ int DoRotationMove()
 	}
 }
 
+boolean IsPositionAcceptable()
+{
+	if(position > curMotion.position - allowablePositionError && position < curMotion.position + allowablePositionError)
+	{
+		return true;
+	}
+
+	return false;
+}
+
 int DoPositionMove()
 {
-	if(position == curMotion.position)
+	if(IsPositionAcceptable())
 	{
 		MotionQueued = false;
 
@@ -213,5 +238,11 @@ void setup()
 void loop()
 {	
 	CheckForCommands();
-	DoMotion();
+	int status = DoMotion();
+
+	// if(lastUpdate - millis() > updateInterval)
+	// {
+	// 	COORDINATOR_PORT.print(status);
+	// 	COORDINATOR_PORT
+	// }
 }
