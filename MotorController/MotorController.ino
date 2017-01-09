@@ -1,10 +1,3 @@
-// Global Motion Controls
-boolean Armed = false;
-boolean InMotion = false;
-long position = 0; // Position is relative and resets after motion
-int rotation = 0; // Rotation is held globally and absolute.
-
-
 /*
 The Coordinator port is the port by which the motor communicates to
 the coordinator. The coordinator sends commands here, and the motor 
@@ -20,19 +13,25 @@ struct MotionValue
 	int position;
 };
 
+// Global Motion Controls
+boolean Armed = false;
+boolean InMotion = false;
+long position = 0; // Position is relative and resets after motion
+int rotation = 0; // Rotation is held globally and absolute.
+MotionValue curMotion;
+
 // Return Success = 0, Failure = 1
 int ParseCommand(char ControlByte, String ControlArgument)
 {
-	MotionValue motion;
 	if(ControlByte == '0')
 	{
-		motion.MotionType = RotateAbsolute;
-		motion.position = ControlArgument.toInt();
+		curMotion.MotionType = RotateAbsolute;
+		curMotion.position = ControlArgument.toInt();
 	}
 	else if(ControlByte == '1')
 	{
-		motion.MotionType = MoveToPosition;
-		motion.position = ControlArgument.toInt();
+		curMotion.MotionType = MoveToPosition;
+		curMotion.position = ControlArgument.toInt();
 	}
 	else if(ControlByte == '2')
 	{
