@@ -1,9 +1,11 @@
+#define DEBUG
+
 /*
 The Coordinator port is the port by which the motor communicates to
 the coordinator. The coordinator sends commands here, and the motor 
 controller responds with errors or successes. 
 */
-#define COORDINATOR_PORT Serial1
+#define COORDINATOR_PORT Serial
 enum MotorControls{RotateAbsolute = 0, MoveToPosition = 1, Stop = 2, Start = 3};
 enum MotorErrors{MotionComplete = 0, RotationFailure = 1, MoveToPositionFailure = 2};
 
@@ -27,19 +29,37 @@ int ParseCommand(char ControlByte, String ControlArgument)
 	{
 		curMotion.MotionType = RotateAbsolute;
 		curMotion.position = ControlArgument.toInt();
+
+#ifdef DEBUG
+		Serial.print("Found rotate command with value of ");
+		Serial.println(curMotion.position);
+#endif
 	}
 	else if(ControlByte == '1')
 	{
 		curMotion.MotionType = MoveToPosition;
 		curMotion.position = ControlArgument.toInt();
+
+#ifdef DEBUG
+		Serial.print("Found Move command with value of ");
+		Serial.println(curMotion.position);
+#endif
 	}
 	else if(ControlByte == '2')
 	{
 		Armed = false;
+
+#ifdef DEBUG
+		Serial.println("Disarmed");
+#endif
 	}
 	else if(ControlByte == '3')
 	{
 		Armed = true;
+
+#ifdef DEBUG
+		Serial.println("Armed");
+#endif
 	}
 	else
 	{
@@ -101,6 +121,6 @@ void setup()
 }
 
 void loop()
-{
-	
+{	
+	CheckForCommands();
 }
