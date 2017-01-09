@@ -18,7 +18,7 @@ struct MotionValue
 
 // Global Motion Controls
 boolean Armed = false;
-boolean InMotion = false;
+boolean MotionQueued = false;
 long position = 0; // Position is relative and resets after motion
 int rotation = 0; // Rotation is held globally and absolute.
 MotionValue curMotion;
@@ -32,6 +32,7 @@ int ParseCommand(char ControlByte, String ControlArgument)
 	{
 		curMotion.MotionType = RotateAbsolute;
 		curMotion.position = ControlArgument.toInt();
+		MotionQueued = true;
 
 #ifdef DEBUG
 		Serial.print("Found rotate command with value of ");
@@ -42,6 +43,7 @@ int ParseCommand(char ControlByte, String ControlArgument)
 	{
 		curMotion.MotionType = MoveToPosition;
 		curMotion.position = ControlArgument.toInt();
+		MotionQueued = true;
 
 		#ifdef DEBUG
 		Serial.print("Found Move command with value of ");
@@ -127,15 +129,80 @@ void StopAllMotors()
 
 }
 
+int DoRotationMove()
+{
+	if(rotation == curMotion.position)
+	{
+		MotionQueued = false;
+
+		#ifdef DEBUG
+		Serial.println("Rotation complete!");
+		#endif
+
+		return 0;
+	}
+	else
+	{
+		#ifdef SIMULATION
+		rotation = curMotion.position;
+		#endif
+	}
+}
+
+int DoPositionMove()
+{
+	if(position == curMotion.position)
+	{
+		MotionQueued = false;
+
+		#ifdef DEBUG
+		Serial.println("Motion complete!");
+		#endif
+
+		return 0;
+	}
+	else
+	{
+		#ifdef SIMULATION
+		position = curMotion.position;
+		#endif
+	}
+}
+
+int DetermineMotionTypeAndMove()
+{
+	if(curMotion.MotionType == RotateAbsolute)
+	{
+		return DoRotationMove();
+	}
+	else if(curMotion.MotionType == MoveToPosition)
+	{
+		return DoPositionMove();
+	}
+
+	return 0;
+}
+
 int DoMotion()
 {
 	if(Armed)
 	{
+		if(MotionQueued)
+		{
+			return DetermineMotionTypeAndMove();
+		}
+		else
+		{
+			return 0;
+		}
 	}
 	else
 	{
 		StopAllMotors();
+		return 0;
 	}
+
+	return 0;
 }
 
 void setup()
@@ -146,4 +213,5 @@ void setup()
 void loop()
 {	
 	CheckForCommands();
+	DoMotion();
 }
