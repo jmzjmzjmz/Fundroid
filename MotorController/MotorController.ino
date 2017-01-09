@@ -66,6 +66,10 @@ int ParseCommand(char ControlByte, String ControlArgument)
 	}
 	else
 	{
+		#ifdef DEBUG
+		Serial.println("Command Not Found");
+		#endif
+
 		return 1; // Command Not Found
 	}
 
@@ -116,6 +120,22 @@ int CheckForCommands()
 	}
 
 	return 0;
+}
+
+void StopAllMotors()
+{
+
+}
+
+int DoMotion()
+{
+	if(Armed)
+	{
+	}
+	else
+	{
+		StopAllMotors();
+	}
 }
 
 void setup()
