@@ -1,4 +1,5 @@
 #define DEBUG
+#define SIMULATION
 
 /*
 The Coordinator port is the port by which the motor communicates to
@@ -25,7 +26,9 @@ MotionValue curMotion;
 // Return Success = 0, Failure = 1
 int ParseCommand(char ControlByte, String ControlArgument)
 {
-	if(ControlByte == '0')
+	ControlByte = ControlByte - '0';
+
+	if(ControlByte == RotateAbsolute)
 	{
 		curMotion.MotionType = RotateAbsolute;
 		curMotion.position = ControlArgument.toInt();
@@ -35,31 +38,31 @@ int ParseCommand(char ControlByte, String ControlArgument)
 		Serial.println(curMotion.position);
 #endif
 	}
-	else if(ControlByte == '1')
+	else if(ControlByte == MoveToPosition)
 	{
 		curMotion.MotionType = MoveToPosition;
 		curMotion.position = ControlArgument.toInt();
 
-#ifdef DEBUG
+		#ifdef DEBUG
 		Serial.print("Found Move command with value of ");
 		Serial.println(curMotion.position);
-#endif
+		#endif
 	}
-	else if(ControlByte == '2')
+	else if(ControlByte == Stop)
 	{
 		Armed = false;
 
-#ifdef DEBUG
+		#ifdef DEBUG
 		Serial.println("Disarmed");
-#endif
+		#endif
 	}
-	else if(ControlByte == '3')
+	else if(ControlByte == Start)
 	{
 		Armed = true;
 
-#ifdef DEBUG
+		#ifdef DEBUG
 		Serial.println("Armed");
-#endif
+		#endif
 	}
 	else
 	{
