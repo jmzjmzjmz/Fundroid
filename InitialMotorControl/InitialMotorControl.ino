@@ -54,7 +54,7 @@ int rTarget = -10;
 int lTarget = -10;
 
 boolean inMotion = false;
-  
+boolean targetSet = false;
 
 void setup() {
 
@@ -102,26 +102,55 @@ void loop() {
 //printInfo();            //nice looking display w labels
 //infoToProcessing();       //CSV for processing
 
-
   if(curMove == 0)
   {
-    Serial.println("Go to Angle 30");
-    goToAngle(30);
+    GoToPoint(700);
+    // Serial.println("Go to Angle 30");
+    // goToAngle(30);
   }
   else if(curMove == 1)
   {
-    goToAngle(60);
+    goToAngle(180);
   }
   else if(curMove == 2)
   {
-    goToAngle(90);
+    GoToPoint(700);
   }
+  else if(curMove == 3)
+  {
+    goToAngle(360);
+  }
+  // else if(curMove == 4)
+  // {
+  //   GoToPoint(100);
+  // }
+  // else if(curMove == 5)
+  // {
+  //   goToAngle(270);
+  // }
+  // else if(curMove == 6)
+  // {
+  //   GoToPoint(100);
+  // }
+  // else if(curMove == 7)
+  // {
+  //   goToAngle(360);
+  // }
+  // else if(curMove == 8)
+  // {
+  //   GoToPoint(100);
+  // }
 
   calcAngleCoordinates();
 
   if(!inMotion)
   {
+    targetSet = false;
     curMove++;
+    Serial.print("Cur Angle: ");
+    Serial.print(botAngle*57.3);
+    Serial.print(" On to move: ");
+    Serial.println(curMove);
     delay(1000);
   }
 
@@ -140,7 +169,7 @@ boolean IsAngleAcceptable(int a)
   return false;
 }
 
-float kP = 0.7;
+float kP = 0.1;
 int GetSpeedValue(int curTicks, int destTicks)
 {
 
@@ -210,6 +239,17 @@ void goToAngle(int a){
   
 }
 
+void GoToPoint(int point)
+{
+  if(!targetSet)
+  {
+    rTarget = point+rWheelTicks;
+    lTarget = point+lWheelTicks;
+    targetSet = true;
+  }
+  goToTarget();
+}
+
 
 void rRising() {
   if (digitalRead(2) == HIGH){
@@ -265,25 +305,67 @@ void setWheelSpeeds(){
 }
 
 
+float fkP = 0.1;
+int GetForwardSpeedValue(int curTicks, int destTicks)
+{
+
+  int error = destTicks - curTicks;
+  int spd = error*fkP;
+  if(spd < 0)
+    spd = -1*spd;
+
+  if(spd < 30)
+    spd = 30;
+  else if(spd > 50)
+    spd = 50;
+
+  return spd;
+}
+
 void goToTarget(){
+  inMotion = true;
+
+  int rWheelSpeed = GetForwardSpeedValue(rWheelTicks, rTarget);
+
+  int rDiff = abs(rTarget - rWheelTicks);
+  int lDiff = abs(lTarget - lWheelTicks);
+
+  float ikp = 0.5;
+  int lrDiff = rDiff - lDiff;
+  if(lrDiff > 0) // Add to r speed because r is further away
+  {
+    rWheelSpeed += ikp*lrDiff;
+  }
+  
+
   if (rWheelTicks <rTarget) {
+    rHitTarget = 0;
     digitalWrite(dirPinR, LOW);               //FWD
-    analogWrite(spdPinR, lWheelSpeed);
+    analogWrite(spdPinR, rWheelSpeed);
   }
   else if (rWheelTicks > rTarget) {
+    rHitTarget = 0;
     digitalWrite(dirPinR, HIGH);              //REV
-    analogWrite(spdPinR, lWheelSpeed);
+    analogWrite(spdPinR, rWheelSpeed);
   }
   else {
     analogWrite(spdPinR, 0);
     rHitTarget = 1;
   }
 
+  int lWheelSpeed = GetForwardSpeedValue(lWheelTicks, lTarget);
+  if(lrDiff < 0)
+  {
+    lWheelSpeed += ikp*abs(lrDiff);
+  }
+
   if (lWheelTicks < lTarget) {
+    lHitTarget = 0;
     digitalWrite(dirPinL, LOW);
     analogWrite(spdPinL, lWheelSpeed);
   }
   else if (lWheelTicks > lTarget) {
+    lHitTarget = 0;
     digitalWrite(dirPinL, HIGH);
     analogWrite(spdPinL, lWheelSpeed);
   }
@@ -291,6 +373,22 @@ void goToTarget(){
     analogWrite(spdPinL, 0);
     lHitTarget = 1;
   }
+
+  if(lHitTarget && rHitTarget)
+  {
+    inMotion = false;
+  }
+
+  Serial.print("RWheelSpeed :");
+  Serial.print(rWheelSpeed);
+  Serial.print(" LWheelSPeed :");
+  Serial.print(lWheelSpeed);
+  Serial.print(" LWheelTicks :");
+  Serial.print(lWheelTicks);
+  Serial.print(" rWheelTicks :");
+  Serial.print(rWheelTicks);
+  Serial.print(" Diff :");
+  Serial.println(lrDiff);
 }
 
 
