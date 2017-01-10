@@ -53,7 +53,8 @@ const byte interruptPin2 = 3;
 int rTarget = -10;
 int lTarget = -10;
 
-
+boolean inMotion = false;
+  
 
 void setup() {
 
@@ -96,34 +97,39 @@ digitalWrite(led, HIGH);
 
 
 void loop() {
-
-
-
 //setWheelSpeeds();
-
-//goToTarget();
-  
 //printInfo();            //nice looking display w labels
 //infoToProcessing();       //CSV for processing
 
-//newTarget(50);
+
+
+goToAngle(60);
 calcAngleCoordinates();
-while(botAngle*57.3 < 360){
-    digitalWrite(dirPinR, LOW);               //FWD
-    analogWrite(spdPinR, 30);
-    digitalWrite(dirPinL, HIGH);               //FWD
-    analogWrite(spdPinL, 30);
-    calcAngleCoordinates();
-    Serial.println(botAngle*57.3);
-}
-    analogWrite(spdPinL, 0);
-    analogWrite(spdPinR, 0);
+
+
 
 }
 
 void goToAngle(int a){
+  Serial.println(botAngle);
+  if(botAngle*57.3 < a){
+    digitalWrite(dirPinR, LOW);               //FWD
+    analogWrite(spdPinR, 50);
+    digitalWrite(dirPinL, HIGH);               //FWD
+    analogWrite(spdPinL, 50);
+    Serial.println("i'm moving");
+    inMotion = true;
+  }
+  else{
+    digitalWrite(dirPinR, LOW);               //FWD
+    analogWrite(spdPinR, 0);
+    digitalWrite(dirPinL, HIGH);               //FWD
+    analogWrite(spdPinL, 0);
+    inMotion = false;
+  } 
   
 }
+
 
 void rRising() {
   if (digitalRead(2) == HIGH){
