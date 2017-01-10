@@ -95,6 +95,7 @@ digitalWrite(led, HIGH);
   delay(5000);
 }
 
+int curMove = 0;
 
 void loop() {
 //setWheelSpeeds();
@@ -102,11 +103,26 @@ void loop() {
 //infoToProcessing();       //CSV for processing
 
 
+if(curMove == 0)
+{
+  goToAngle(30);
+}
+else if(curMove == 1)
+{
+  goToAngle(60);
+}
+else if(curMove == 2)
+{
+  goToAngle(90);
+}
 
-goToAngle(60);
 calcAngleCoordinates();
 
-
+if(!inMotion)
+{
+  curMove++;
+  delay(1000);
+}
 
 }
 
