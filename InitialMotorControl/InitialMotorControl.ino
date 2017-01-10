@@ -103,46 +103,110 @@ void loop() {
 //infoToProcessing();       //CSV for processing
 
 
-if(curMove == 0)
-{
-  goToAngle(30);
-}
-else if(curMove == 1)
-{
-  goToAngle(60);
-}
-else if(curMove == 2)
-{
-  goToAngle(90);
-}
-
-calcAngleCoordinates();
-
-if(!inMotion)
-{
-  curMove++;
-  delay(1000);
-}
-
-}
-
-void goToAngle(int a){
-  Serial.println(botAngle);
-  if(botAngle*57.3 < a){
-    digitalWrite(dirPinR, LOW);               //FWD
-    analogWrite(spdPinR, 50);
-    digitalWrite(dirPinL, HIGH);               //FWD
-    analogWrite(spdPinL, 50);
-    Serial.println("i'm moving");
-    inMotion = true;
+  if(curMove == 0)
+  {
+    Serial.println("Go to Angle 30");
+    goToAngle(30);
   }
-  else{
+  else if(curMove == 1)
+  {
+    goToAngle(60);
+  }
+  else if(curMove == 2)
+  {
+    goToAngle(90);
+  }
+
+  calcAngleCoordinates();
+
+  if(!inMotion)
+  {
+    curMove++;
+    delay(1000);
+  }
+
+}
+
+int marginOfError = 1;
+boolean IsAngleAcceptable(int a)
+{
+    
+  if(a+1 > botAngle*57.3 && a-1 < botAngle*57.3)
+  {
+    inMotion = false;
+    return true;
+  }
+
+  return false;
+}
+
+float kP = 0.7;
+int GetSpeedValue(int curTicks, int destTicks)
+{
+
+  int error = destTicks - curTicks;
+  int spd = error*kP;
+  if(spd < 0)
+    spd = -1*spd;
+
+  if(spd < 30)
+    spd = 30;
+  else if(spd > 50)
+    spd = 50;
+
+  return spd;
+}
+
+void goToAngle(int a){ 
+
+  Serial.println(botAngle*57.3);
+
+  if(IsAngleAcceptable(a))
+  {
     digitalWrite(dirPinR, LOW);               //FWD
     analogWrite(spdPinR, 0);
     digitalWrite(dirPinL, HIGH);               //FWD
     analogWrite(spdPinL, 0);
     inMotion = false;
-  } 
+    return;
+  }
+
+  int wheelTicks = GetDesiredWheelTicks(a);
+  Serial.println(wheelTicks);
+
+  int spd1 = GetSpeedValue(rWheelTicks ,wheelTicks);
+  int spd2 = GetSpeedValue(lWheelTicks, wheelTicks);
+  Serial.print("spd1 ");
+  Serial.print(spd1);
+  Serial.print(" spd2 ");
+  Serial.println(spd2);
+
+  digitalWrite(dirPinR, LOW);               //FWD
+  analogWrite(spdPinR, GetSpeedValue(rWheelTicks ,wheelTicks));
+  digitalWrite(dirPinL, HIGH);               //FWD
+  analogWrite(spdPinL, GetSpeedValue(lWheelTicks ,wheelTicks));
+  inMotion = true;
+   
+//    
+//
+//  // Rotate CCW
+//  if(botAngle*57.3 < a){
+//    int wheelTicks = GetDesiredWheelTicks(a);
+//    
+//    digitalWrite(dirPinR, LOW);               //FWD
+//    analogWrite(spdPinR, GetSpeedValue();
+//    digitalWrite(dirPinL, HIGH);               //FWD
+//    analogWrite(spdPinL, 50);
+//    inMotion = true;
+//  }
+//  // Rotate CW
+//  else if(botAngle*57.3 > a){
+//    digitalWrite(dirPinR, HIGH);               //FWD
+//    analogWrite(spdPinR, 50);
+//    digitalWrite(dirPinL, LOW);               //FWD
+//    analogWrite(spdPinL, 50);
+//    inMotion = true;
+//  }
   
 }
 
@@ -241,12 +305,21 @@ void newTarget(int x){
   }
 }
 
+int GetDesiredWheelTicks(float deltaAngle)
+{
+  deltaAngle = botAngle*57.3 - deltaAngle;
+  
+  int desiredWheelTicks = ((deltaAngle*wheelBase)/2) / stepDist;
+
+  return desiredWheelTicks;
+}
 
 void calcAngleCoordinates() {
 
   rWheelDist = rWheelChange * stepDist;
   lWheelDist = lWheelChange * stepDist;
   angleChange = (rWheelDist - lWheelDist) / wheelBase;
+  
   botAngle = botAngle + angleChange;
   distCenter = (rWheelDist + lWheelDist)/2; 
   botX = botX + distCenter*cos(botAngle);
