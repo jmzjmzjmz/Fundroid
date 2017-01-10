@@ -40,9 +40,10 @@ float botY = 0;
 float changeX = 0;
 float changeY = 0;
 
-float wheelBase = 502;
-float wheelCircumference = 812;     //based on measuring w a wire (was originally 796)
-float numOfSteps = 185;
+// 32:1 Gear Ratio
+float wheelBase = 494.5;
+float wheelCircumference = 784;     //based on measuring w a wire (was originally 796)
+float numOfSteps = 192;
 float stepDist = wheelCircumference/numOfSteps;
 
 int rHitTarget = 0;
@@ -104,7 +105,12 @@ void loop() {
 
   if(curMove == 0)
   {
-    GoToPoint(700);
+    // 245 STEPS GOES 1.02M
+    //GoToPoint(245);
+
+    //goToAngle(180);
+
+    GoToPoint(490);
     // Serial.println("Go to Angle 30");
     // goToAngle(30);
   }
@@ -114,7 +120,7 @@ void loop() {
   }
   else if(curMove == 2)
   {
-    GoToPoint(700);
+    GoToPoint(490);
   }
   else if(curMove == 3)
   {
@@ -305,7 +311,7 @@ void setWheelSpeeds(){
 }
 
 
-float fkP = 0.1;
+float fkP = 0.7;
 int GetForwardSpeedValue(int curTicks, int destTicks)
 {
 
@@ -316,8 +322,8 @@ int GetForwardSpeedValue(int curTicks, int destTicks)
 
   if(spd < 30)
     spd = 30;
-  else if(spd > 50)
-    spd = 50;
+  else if(spd > 100)
+    spd = 100;
 
   return spd;
 }
