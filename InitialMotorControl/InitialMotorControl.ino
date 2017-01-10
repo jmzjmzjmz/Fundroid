@@ -11,7 +11,7 @@ int inByte = 0;         // incoming serial byte
 const int dirPinR = 8;
 const int spdPinR = 9;
 const int dirPinL = 10;
-const int spdPinL = 6;
+const int spdPinL = 11;
 const int resetButton = 12;
 const int led = 13;
 int topSpeed = 70;
@@ -41,8 +41,8 @@ float changeX = 0;
 float changeY = 0;
 
 float wheelBase = 502;
-float wheelCircumference = 800;     //based on measuring w a wire (was originally 796)
-float numOfSteps = 192;
+float wheelCircumference = 812;     //based on measuring w a wire (was originally 796)
+float numOfSteps = 185;
 float stepDist = wheelCircumference/numOfSteps;
 
 int rHitTarget = 0;
@@ -99,19 +99,30 @@ void loop() {
 
 
 
-setWheelSpeeds();
+//setWheelSpeeds();
 
-goToTarget();
+//goToTarget();
   
 //printInfo();            //nice looking display w labels
-infoToProcessing();       //CSV for processing
+//infoToProcessing();       //CSV for processing
 
-newTarget(50);
-
-
+//newTarget(50);
 calcAngleCoordinates();
+while(botAngle*57.3 < 360){
+    digitalWrite(dirPinR, LOW);               //FWD
+    analogWrite(spdPinR, 30);
+    digitalWrite(dirPinL, HIGH);               //FWD
+    analogWrite(spdPinL, 30);
+    calcAngleCoordinates();
+    Serial.println(botAngle*57.3);
+}
+    analogWrite(spdPinL, 0);
+    analogWrite(spdPinR, 0);
 
+}
 
+void goToAngle(int a){
+  
 }
 
 void rRising() {
