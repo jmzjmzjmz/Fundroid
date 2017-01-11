@@ -1,3 +1,56 @@
+#include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BNO055.h>
+#include <utility/imumaths.h>
+
+#define BNO055_SAMPLERATE_DELAY_MS (100)
+
+Adafruit_BNO055 bno = Adafruit_BNO055();
+
+void SetCalibrationData(adafruit_bno055_offsets_t &calibData)
+{
+  calibData.accel_offset_x = 20;
+  calibData.accel_offset_y = 65454;
+  calibData.accel_offset_z = 0;
+
+  calibData.gyro_offset_x = 0;
+  calibData.gyro_offset_y = 65534;
+  calibData.gyro_offset_z = 65535;
+
+  calibData.mag_offset_x = 65354;
+  calibData.mag_offset_y = 221;
+  calibData.mag_offset_z = 65323;
+
+  calibData.accel_radius = 1000;
+  calibData.mag_radius = 839;
+}
+
+void WaitForCalibrationComplete()
+{
+  int numberConsecutiveReads = 3;
+  int numReads = 0;
+  /* Display calibration status for each sensor. */
+  uint8_t system, gyro, accel, mag = 0;
+
+  while(numReads != numberConsecutiveReads)
+  {
+    bno.getCalibration(&system, &gyro, &accel, &mag);
+    Serial.print("Continue when Mag == 3... Currently Mag=");
+    Serial.println(mag, DEC);
+    delay(BNO055_SAMPLERATE_DELAY_MS);
+
+    if(mag == 3)
+    {
+      numReads++;
+    }
+    else
+    {
+      numReads = 0;
+    }
+  }
+  
+}
+
 /*
   Wheels are 96 steps per rotation 
   Now there are 192 since we have 6 pulses per internal motor revolution

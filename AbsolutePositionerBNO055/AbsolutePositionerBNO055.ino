@@ -56,11 +56,34 @@ void SetCalibrationData(adafruit_bno055_offsets_t &calibData)
   calibData.mag_radius = 839;
 }
 
-void setup(void)
+void WaitForCalibrationComplete()
 {
-  Serial.begin(9600);
-  Serial.println("Orientation Sensor Raw Data Test"); Serial.println("");
+  int numberConsecutiveReads = 3;
+  int numReads = 0;
+  /* Display calibration status for each sensor. */
+  uint8_t system, gyro, accel, mag = 0;
 
+  while(numReads != numberConsecutiveReads)
+  {
+    bno.getCalibration(&system, &gyro, &accel, &mag);
+    Serial.print("Continue when Mag == 3... Currently Mag=");
+    Serial.println(mag, DEC);
+    delay(BNO055_SAMPLERATE_DELAY_MS);
+
+    if(mag == 3)
+    {
+      numReads++;
+    }
+    else
+    {
+      numReads = 0;
+    }
+  }
+  
+}
+
+void StartBNO()
+{
   if(!bno.begin())
   {
     Serial.print("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
@@ -75,12 +98,12 @@ void setup(void)
 
   bno.setExtCrystalUse(true);
 
-  Serial.println("Calibration status values: 0=uncalibrated, 3=fully calibrated");
+  WaitForCalibrationComplete();
 }
 
-void loop(void)
+void ReadBNO()
 {
-  // Possible vector values can be:
+   // Possible vector values can be:
   // - VECTOR_ACCELEROMETER - m/s^2
   // - VECTOR_MAGNETOMETER  - uT
   // - VECTOR_GYROSCOPE     - rad/s
@@ -111,4 +134,17 @@ void loop(void)
   Serial.println(mag, DEC);
 
   delay(BNO055_SAMPLERATE_DELAY_MS);
+}
+
+void setup(void)
+{
+  Serial.begin(9600);
+  Serial.println("Orientation Sensor Raw Data Test"); Serial.println("");
+
+  StartBNO();
+}
+
+void loop(void)
+{
+  ReadBNO();
 }
