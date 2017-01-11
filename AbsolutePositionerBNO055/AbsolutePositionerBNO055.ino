@@ -17,50 +17,67 @@
    2015/MAR/03  - First release (KTOWN)
 */
 
-/* Set the delay between fresh samples */
+/* Calibration done in New Jersey
+
+Fully calibrated!
+--------------------------------
+Calibration Results: 
+Accelerometer: 20 65454 0 
+Gyro: 0 65534 65535 
+Mag: 65354 221 65323 
+Accel Radius: 1000
+Mag Radius: 839
+
+Storing calibration data to EEPROM...
+Data stored to EEPROM.
+
+--------------------------------
+*/
+
 #define BNO055_SAMPLERATE_DELAY_MS (100)
 
 Adafruit_BNO055 bno = Adafruit_BNO055();
 
-/**************************************************************************/
-/*
-    Arduino setup function (automatically called at startup)
-*/
-/**************************************************************************/
+void SetCalibrationData(adafruit_bno055_offsets_t &calibData)
+{
+  calibData.accel_offset_x = 20;
+  calibData.accel_offset_y = 65454;
+  calibData.accel_offset_z = 0;
+
+  calibData.gyro_offset_x = 0;
+  calibData.gyro_offset_y = 65534;
+  calibData.gyro_offset_z = 65535;
+
+  calibData.mag_offset_x = 65354;
+  calibData.mag_offset_y = 221;
+  calibData.mag_offset_z = 65323;
+
+  calibData.accel_radius = 1000;
+  calibData.mag_radius = 839;
+}
+
 void setup(void)
 {
   Serial.begin(9600);
   Serial.println("Orientation Sensor Raw Data Test"); Serial.println("");
 
-
-  /* Initialise the sensor */
-  if(!bno.begin(Adafruit_BNO055::OPERATION_MODE_COMPASS))
+  if(!bno.begin())
   {
-    /* There was a problem detecting the BNO055 ... check your connections */
     Serial.print("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
     while(1);
   }
 
   delay(1000);
 
-  /* Display the current temperature */
-  int8_t temp = bno.getTemp();
-  Serial.print("Current Temperature: ");
-  Serial.print(temp);
-  Serial.println(" C");
-  Serial.println("");
+  adafruit_bno055_offsets_t calibrationData;
+  SetCalibrationData(calibrationData);
+  bno.setSensorOffsets(calibrationData);
 
   bno.setExtCrystalUse(true);
 
   Serial.println("Calibration status values: 0=uncalibrated, 3=fully calibrated");
 }
 
-/**************************************************************************/
-/*
-    Arduino loop function, called once 'setup' is complete (your own code
-    should go here)
-*/
-/**************************************************************************/
 void loop(void)
 {
   // Possible vector values can be:
@@ -70,7 +87,7 @@ void loop(void)
   // - VECTOR_EULER         - degrees
   // - VECTOR_LINEARACCEL   - m/s^2
   // - VECTOR_GRAVITY       - m/s^2
-  imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_MAGNETOMETER);
+  imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
 
   /* Display the floating point data */
   Serial.print("X: ");
@@ -80,25 +97,6 @@ void loop(void)
   Serial.print(" Z: ");
   Serial.print(euler.z());
   Serial.print("\t\t");
-
-  float heading = atan2(euler.y(), euler.x());
-  heading = (heading*180)/3.1415;
-  Serial.print("HEADING: ");
-  Serial.print(heading);
-
-  /*
-  // Quaternion data
-  imu::Quaternion quat = bno.getQuat();
-  Serial.print("qW: ");
-  Serial.print(quat.w(), 4);
-  Serial.print(" qX: ");
-  Serial.print(quat.y(), 4);
-  Serial.print(" qY: ");
-  Serial.print(quat.x(), 4);
-  Serial.print(" qZ: ");
-  Serial.print(quat.z(), 4);
-  Serial.print("\t\t");
-  */
 
   /* Display calibration status for each sensor. */
   uint8_t system, gyro, accel, mag = 0;
