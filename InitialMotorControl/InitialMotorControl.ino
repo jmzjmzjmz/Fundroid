@@ -178,6 +178,7 @@ int lTarget = -10;
 boolean enterNudgeSequence = false;
 boolean inMotion = false;
 boolean targetSet = false;
+float CorrectAngle = 0.0;
 
 boolean IsInitializeAngleClose()
 {
@@ -198,17 +199,17 @@ void StopBot()
 void RotateBotCCW()
 {
   digitalWrite(dirPinR, LOW);               //FWD
-  analogWrite(spdPinR, 30);
+  analogWrite(spdPinR, 40);
   digitalWrite(dirPinL, HIGH);               //FWD
-  analogWrite(spdPinL, 30);
+  analogWrite(spdPinL, 40);
 }
 
 void RotateBotCW()
 {
   digitalWrite(dirPinR, HIGH);               //FWD
-  analogWrite(spdPinR, 30);
+  analogWrite(spdPinR, 40);
   digitalWrite(dirPinL, LOW);               //FWD
-  analogWrite(spdPinL, 30);
+  analogWrite(spdPinL, 40);
 }
 
 void NudgeToZero()
@@ -229,7 +230,7 @@ void NudgeToZero()
       StopBot();
     }
 
-    DelayAndReadBNO(1000);
+    DelayAndReadBNO(2000);
   }
   
 }
@@ -349,36 +350,36 @@ void loop() {
 
     //GoToPoint(490);
     // Serial.println("Go to Angle 30");
-    goToAngle(65);
+    goToAngle(63);
   }
   else if(curMove == 1)
   {
-    GoToPoint(600);
+    GoToPointMetric(5);
   }
   else if(curMove == 2)
   {
-    goToAngle(225);
+    goToAngle(132);
   }
-  // else if(curMove == 3)
-  // {
-  //   goToAngle(270);
-  // }
+  else if(curMove == 3)
+  {
+    GoToPointMetric(5);
+  }
   else if(curMove == 4)
   {
-    GoToPoint(600);
+    goToAngle(222);
   }
   else if(curMove == 5)
   {
-    goToAngle(65);
+    GoToPointMetric(5);
   }
-  //else if(curMove == 6)
-  // {
-  //   GoToPoint(100);
-  // }
-  // else if(curMove == 7)
-  // {
-  //   goToAngle(360);
-  // }
+  else if(curMove == 6)
+  {
+    goToAngle(333);
+  }
+  else if(curMove == 7)
+  {
+    GoToPointMetric(5);
+  }
   // else if(curMove == 8)
   // {
   //   GoToPoint(100);
@@ -396,8 +397,8 @@ void loop() {
     Serial.println(curMove);
     DelayAndReadBNO(1000);
 
-    if(curMove > 5)
-      curMove = 1;
+    if(curMove > 7)
+      curMove = 0;
   }
 
 }
@@ -415,7 +416,7 @@ boolean IsAnglePreNudgeAcceptable(int a)
 int marginOfError = 1;
 boolean IsAngleAcceptable(int a)
 {
-  if(a+1 > botAngle*57.3 && a-1 < botAngle*57.3)
+  if(a+0.5 > botAngle*57.3 && a-0.5 < botAngle*57.3)
   {
     return true;
   }
@@ -490,6 +491,8 @@ void nudgeToAngle(int a)
 
 void goToAngle(int a){ 
 
+  CorrectAngle = (float)a;
+
   Serial.println(botAngle*57.3);
 
   if(IsAnglePreNudgeAcceptable(a) && !enterNudgeSequence)
@@ -548,6 +551,13 @@ void goToAngle(int a){
     
     inMotion = true;
   }
+}
+
+void GoToPointMetric(float meter)
+{
+  int nextPoint = meter*240;
+
+  GoToPoint(nextPoint);
 }
 
 void GoToPoint(int point)
