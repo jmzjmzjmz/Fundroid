@@ -349,27 +349,27 @@ void loop() {
 
     //GoToPoint(490);
     // Serial.println("Go to Angle 30");
-    goToAngle(90);
+    goToAngle(65);
   }
   else if(curMove == 1)
   {
-    goToAngle(0);
+    GoToPoint(600);
   }
-  // else if(curMove == 2)
-  // {
-  //   GoToPoint(490);
-  // }
-  else if(curMove == 3)
+  else if(curMove == 2)
   {
-    goToAngle(270);
+    goToAngle(225);
   }
-  // else if(curMove == 4)
+  // else if(curMove == 3)
   // {
-  //   GoToPoint(100);
+  //   goToAngle(270);
   // }
+  else if(curMove == 4)
+  {
+    GoToPoint(600);
+  }
   else if(curMove == 5)
   {
-    goToAngle(180);
+    goToAngle(65);
   }
   //else if(curMove == 6)
   // {
@@ -395,8 +395,21 @@ void loop() {
     Serial.print(" On to move: ");
     Serial.println(curMove);
     DelayAndReadBNO(1000);
+
+    if(curMove > 5)
+      curMove = 1;
   }
 
+}
+
+boolean IsAnglePreNudgeAcceptable(int a)
+{
+  if(a+3 > botAngle*57.3 && a-3 < botAngle*57.3)
+  {
+    return true;
+  }
+
+  return false;
 }
 
 int marginOfError = 1;
@@ -479,7 +492,7 @@ void goToAngle(int a){
 
   Serial.println(botAngle*57.3);
 
-  if(IsAngleAcceptable(a) && !enterNudgeSequence)
+  if(IsAnglePreNudgeAcceptable(a) && !enterNudgeSequence)
   {
     StopBot();
     enterNudgeSequence = true;
