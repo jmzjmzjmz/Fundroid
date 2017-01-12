@@ -3,7 +3,23 @@
 #include <Adafruit_BNO055.h>
 #include <utility/imumaths.h>
 
-#define BNO055_SAMPLERATE_DELAY_MS (100)
+// ProtoTypes
+boolean IsAngleAcceptable(int a);
+int GetSpeedValue(int curTicks, int destTicks);
+void goToAngle(int a);
+void GoToPoint(int point);
+void rRising();
+void lRising();
+void setWheelSpeeds();
+int GetForwardSpeedValue(int curTicks, int destTicks);
+void goToTarget();
+void newTarget(int x);
+int GetDesiredWheelTicks(float deltaAngle);
+void calcAngleCoordinates();
+void printInfo();
+void infoToProcessing();
+
+#define BNO055_SAMPLERATE_DELAY_MS (50)
 
 Adafruit_BNO055 bno = Adafruit_BNO055();
 
@@ -50,6 +66,58 @@ void WaitForCalibrationComplete()
   }
   
 }
+
+void StartBNO()
+{
+  if(!bno.begin(Adafruit_BNO055::OPERATION_MODE_COMPASS))
+  {
+    Serial.print("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
+    while(1);
+  }
+
+  delay(1000);
+
+  adafruit_bno055_offsets_t calibrationData;
+  SetCalibrationData(calibrationData);
+  bno.setSensorOffsets(calibrationData);
+
+  bno.setExtCrystalUse(true);
+
+  WaitForCalibrationComplete();
+}
+
+long lastBNORead = 0;
+long nextBNORead = BNO055_SAMPLERATE_DELAY_MS;
+float curBNOHeading = 0;
+float lastBNOHeading = 0;
+void ReadBNO()
+{
+  if(millis() - lastBNORead > nextBNORead)
+  {
+    // Possible vector values can be:
+    // - VECTOR_ACCELEROMETER - m/s^2
+    // - VECTOR_MAGNETOMETER  - uT
+    // - VECTOR_GYROSCOPE     - rad/s
+    // - VECTOR_EULER         - degrees
+    // - VECTOR_LINEARACCEL   - m/s^2
+    // - VECTOR_GRAVITY       - m/s^2
+    imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
+
+    /* Display the floating point data */
+    Serial.print("X: ");
+    Serial.print(euler.x());
+    Serial.print(" Y: ");
+    Serial.print(euler.y());
+    Serial.print(" Z: ");
+    Serial.print(euler.z());
+    Serial.println("\t\t");
+
+    curBNOHeading = euler.x();
+
+    lastBNORead = millis();
+  }
+}
+
 
 /*
   Wheels are 96 steps per rotation 
@@ -110,10 +178,119 @@ int lTarget = -10;
 boolean inMotion = false;
 boolean targetSet = false;
 
+boolean IsInitializeAngleClose()
+{
+  if(curBNOHeading > 359.0 || curBNOHeading < 1.0)
+    return true;
+
+  return false;
+}
+
+void StopBot()
+{
+    digitalWrite(dirPinR, LOW);               //FWD
+    analogWrite(spdPinR, 0);
+    digitalWrite(dirPinL, HIGH);               //FWD
+    analogWrite(spdPinL, 0);
+}
+
+void RotateBotCCW()
+{
+  digitalWrite(dirPinR, LOW);               //FWD
+  analogWrite(spdPinR, 30);
+  digitalWrite(dirPinL, HIGH);               //FWD
+  analogWrite(spdPinL, 30);
+}
+
+void RotateBotCW()
+{
+  digitalWrite(dirPinR, HIGH);               //FWD
+  analogWrite(spdPinR, 30);
+  digitalWrite(dirPinL, LOW);               //FWD
+  analogWrite(spdPinL, 30);
+}
+
+void NudgeToZero()
+{
+  while(!IsInitializeAngleClose())
+  {
+    Serial.println("NUDGE");
+    if(curBNOHeading < 180)
+    {
+      RotateBotCCW();
+      DelayAndReadBNO(100);
+      StopBot();
+    }
+    else 
+    { 
+      RotateBotCW();
+      DelayAndReadBNO(100);
+      StopBot();
+    }
+
+    DelayAndReadBNO(1000);
+  }
+  
+}
+
+boolean isInitialized = false;
+void InitializeBot()
+{
+  boolean lessThan180 = false;
+  if(curBNOHeading < 180)
+  {
+    RotateBotCCW();
+    lessThan180 = true;
+  }
+  else 
+  {
+    RotateBotCW();
+    lessThan180 = false;
+  }
+
+  while(!isInitialized)
+  {
+    ReadBNO();
+
+    if(lessThan180 && curBNOHeading > 180)
+    {
+      StopBot();
+      NudgeToZero();
+    }
+    else if(!lessThan180 && curBNOHeading < 180)
+    {
+      StopBot();
+      NudgeToZero();
+    }
+
+    if(IsInitializeAngleClose())
+    {
+      StopBot();
+      botAngle = 0;
+      isInitialized = true;
+      Serial.println("Initialization Complete. Continuing in 2 seconds");
+      delay(2000);
+    }
+  }
+}
+
+void DelayAndReadBNO(long delayTime)
+{
+  long curTime = millis();
+  while(millis() < curTime + delayTime)
+  {
+    Serial.print("Delay At ");
+    Serial.print( (curTime+delayTime) - millis());
+    Serial.print(" ");
+    ReadBNO();
+  }
+}
+
 void setup() {
 
   Serial.begin(9600);
  
+  StartBNO();
  
   //Motor Controls
   pinMode (dirPinR, OUTPUT);
@@ -143,10 +320,10 @@ void setup() {
   //}
 
 //  Serial.println("starting");
-digitalWrite(led, HIGH);
-  delay(500);
+  digitalWrite(led, HIGH);
+  DelayAndReadBNO(500);
   digitalWrite(led, LOW);
-  delay(5000);
+  DelayAndReadBNO(5000);
 }
 
 int curMove = 0;
@@ -156,6 +333,13 @@ void loop() {
 //printInfo();            //nice looking display w labels
 //infoToProcessing();       //CSV for processing
 
+  ReadBNO();
+
+  if(!isInitialized)
+  {
+    InitializeBot();
+  }
+
   if(curMove == 0)
   {
     // 245 STEPS GOES 1.02M
@@ -163,22 +347,22 @@ void loop() {
 
     //goToAngle(180);
 
-    GoToPoint(490);
+    //GoToPoint(490);
     // Serial.println("Go to Angle 30");
-    // goToAngle(30);
+    //goToAngle(30);
   }
-  else if(curMove == 1)
-  {
-    goToAngle(180);
-  }
-  else if(curMove == 2)
-  {
-    GoToPoint(490);
-  }
-  else if(curMove == 3)
-  {
-    goToAngle(360);
-  }
+  // else if(curMove == 1)
+  // {
+  //   goToAngle(0);
+  // }
+  // else if(curMove == 2)
+  // {
+  //   GoToPoint(490);
+  // }
+  // else if(curMove == 3)
+  // {
+  //   goToAngle(360);
+  // }
   // else if(curMove == 4)
   // {
   //   GoToPoint(100);
@@ -210,7 +394,7 @@ void loop() {
     Serial.print(botAngle*57.3);
     Serial.print(" On to move: ");
     Serial.println(curMove);
-    delay(1000);
+    DelayAndReadBNO(1000);
   }
 
 }
@@ -218,7 +402,6 @@ void loop() {
 int marginOfError = 1;
 boolean IsAngleAcceptable(int a)
 {
-    
   if(a+1 > botAngle*57.3 && a-1 < botAngle*57.3)
   {
     inMotion = false;
@@ -251,10 +434,7 @@ void goToAngle(int a){
 
   if(IsAngleAcceptable(a))
   {
-    digitalWrite(dirPinR, LOW);               //FWD
-    analogWrite(spdPinR, 0);
-    digitalWrite(dirPinL, HIGH);               //FWD
-    analogWrite(spdPinL, 0);
+    StopBot();
     inMotion = false;
     return;
   }
@@ -450,7 +630,6 @@ void goToTarget(){
   Serial.println(lrDiff);
 }
 
-
 void newTarget(int x){
   if (lHitTarget + rHitTarget == 2) {
     rTarget = random(-x, x);
@@ -482,6 +661,11 @@ void calcAngleCoordinates() {
   botX = botX + distCenter*cos(botAngle);
   botY = botY + distCenter*sin(botAngle);
 
+  // if(curBNOHeading != lastBNOHeading)
+  // {
+  //   lastBNOHeading = curBNOHeading;
+  //   botAngle = curBNOHeading/57.3;
+  // }
   
   rWheelChange = 0;
   lWheelChange = 0;

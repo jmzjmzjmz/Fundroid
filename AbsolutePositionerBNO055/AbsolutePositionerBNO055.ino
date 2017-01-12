@@ -84,7 +84,7 @@ void WaitForCalibrationComplete()
 
 void StartBNO()
 {
-  if(!bno.begin())
+  if(!bno.begin(Adafruit_BNO055::OPERATION_MODE_COMPASS))
   {
     Serial.print("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
     while(1);
