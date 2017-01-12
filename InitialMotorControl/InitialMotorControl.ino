@@ -427,7 +427,7 @@ int GetSpeedValue(int curTicks, int destTicks)
   return spd;
 }
 
-void nudgeToAngle(int a)
+boolean ShouldRotateCCW(int a)
 {
   float curBotAngleD = botAngle*57.3;
 
@@ -451,16 +451,23 @@ void nudgeToAngle(int a)
     CCWRotate = !CCWRotate;
   }
 
+  return CCWRotate;
+}
+
+void nudgeToAngle(int a)
+{
+  boolean CCWRotate = ShouldRotateCCW(a);
+
   if(CCWRotate)
   {
     RotateBotCCW();
-    DelayAndReadBNO(100);
+    DelayAndReadBNO(200);
     StopBot();
   }
   else
   {
     RotateBotCW();
-    DelayAndReadBNO(100);
+    DelayAndReadBNO(200);
     StopBot();
   }
 
@@ -490,20 +497,41 @@ void goToAngle(int a){
   {
     enterNudgeSequence = false;
 
-    int wheelTicks = GetDesiredWheelTicks(a);
-    Serial.println(wheelTicks);
+    if(ShouldRotateCCW(a))
+    {
+      int wheelTicks = GetDesiredWheelTicks(a);
+      Serial.println(wheelTicks);
 
-    int spd1 = GetSpeedValue(rWheelTicks ,wheelTicks);
-    int spd2 = GetSpeedValue(lWheelTicks, wheelTicks);
-    Serial.print("spd1 ");
-    Serial.print(spd1);
-    Serial.print(" spd2 ");
-    Serial.println(spd2);
+      int spd1 = GetSpeedValue(rWheelTicks ,wheelTicks);
+      int spd2 = GetSpeedValue(lWheelTicks, wheelTicks);
+      Serial.print("spd1 ");
+      Serial.print(spd1);
+      Serial.print(" spd2 ");
+      Serial.println(spd2);
 
-    digitalWrite(dirPinR, LOW);               //FWD
-    analogWrite(spdPinR, GetSpeedValue(rWheelTicks ,wheelTicks));
-    digitalWrite(dirPinL, HIGH);               //FWD
-    analogWrite(spdPinL, GetSpeedValue(lWheelTicks ,wheelTicks));
+      digitalWrite(dirPinR, LOW);               //FWD
+      analogWrite(spdPinR, GetSpeedValue(rWheelTicks ,wheelTicks));
+      digitalWrite(dirPinL, HIGH);               //FWD
+      analogWrite(spdPinL, GetSpeedValue(lWheelTicks ,wheelTicks));
+    }
+    else
+    {
+      int wheelTicks = GetDesiredWheelTicks(a);
+      Serial.println(wheelTicks);
+
+      int spd1 = GetSpeedValue(rWheelTicks ,wheelTicks);
+      int spd2 = GetSpeedValue(lWheelTicks, wheelTicks);
+      Serial.print("spd1 ");
+      Serial.print(spd1);
+      Serial.print(" spd2 ");
+      Serial.println(spd2);
+
+      digitalWrite(dirPinR, HIGH);               //FWD
+      analogWrite(spdPinR, GetSpeedValue(rWheelTicks ,wheelTicks));
+      digitalWrite(dirPinL, LOW);               //FWD
+      analogWrite(spdPinL, GetSpeedValue(lWheelTicks ,wheelTicks));
+    }
+    
     inMotion = true;
   }
 }
