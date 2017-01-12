@@ -175,6 +175,7 @@ const byte interruptPin2 = 3;
 int rTarget = -10;
 int lTarget = -10;
 
+boolean enterNudgeSequence = false;
 boolean inMotion = false;
 boolean targetSet = false;
 
@@ -276,12 +277,11 @@ void InitializeBot()
 
 void DelayAndReadBNO(long delayTime)
 {
+  Serial.print("Delay At ");
+  Serial.print(delayTime);
   long curTime = millis();
   while(millis() < curTime + delayTime)
   {
-    Serial.print("Delay At ");
-    Serial.print( (curTime+delayTime) - millis());
-    Serial.print(" ");
     ReadBNO();
   }
 }
@@ -349,7 +349,7 @@ void loop() {
 
     //GoToPoint(490);
     // Serial.println("Go to Angle 30");
-    //goToAngle(30);
+    goToAngle(30);
   }
   // else if(curMove == 1)
   // {
@@ -404,7 +404,6 @@ boolean IsAngleAcceptable(int a)
 {
   if(a+1 > botAngle*57.3 && a-1 < botAngle*57.3)
   {
-    inMotion = false;
     return true;
   }
 
@@ -428,54 +427,85 @@ int GetSpeedValue(int curTicks, int destTicks)
   return spd;
 }
 
+void nudgeToAngle(int a)
+{
+  float curBotAngleD = botAngle*57.3;
+
+  boolean CCWRotate = true;
+
+  float diffAngle = 0.0;
+
+  if(curBotAngleD > a)
+  {
+    CCWRotate = true;
+    diffAngle = curBotAngleD - a;
+  }
+  else
+  {
+    CCWRotate = false;
+    diffAngle = a - curBotAngleD;
+  }
+  
+  if(diffAngle > 180)
+  {
+    CCWRotate = !CCWRotate;
+  }
+
+  if(CCWRotate)
+  {
+    RotateBotCCW();
+    DelayAndReadBNO(100);
+    StopBot();
+  }
+  else
+  {
+    RotateBotCW();
+    DelayAndReadBNO(100);
+    StopBot();
+  }
+
+  DelayAndReadBNO(1000);
+
+}
+
 void goToAngle(int a){ 
 
   Serial.println(botAngle*57.3);
 
-  if(IsAngleAcceptable(a))
+  if(IsAngleAcceptable(a) && !enterNudgeSequence)
   {
     StopBot();
-    inMotion = false;
-    return;
+    enterNudgeSequence = true;
+    DelayAndReadBNO(1000);
   }
+  else if(enterNudgeSequence && IsAngleAcceptable(a))
+  {
+    inMotion = false;
+  }
+  else if(enterNudgeSequence)
+  {
+    nudgeToAngle(a);
+  }
+  else
+  {
+    enterNudgeSequence = false;
 
-  int wheelTicks = GetDesiredWheelTicks(a);
-  Serial.println(wheelTicks);
+    int wheelTicks = GetDesiredWheelTicks(a);
+    Serial.println(wheelTicks);
 
-  int spd1 = GetSpeedValue(rWheelTicks ,wheelTicks);
-  int spd2 = GetSpeedValue(lWheelTicks, wheelTicks);
-  Serial.print("spd1 ");
-  Serial.print(spd1);
-  Serial.print(" spd2 ");
-  Serial.println(spd2);
+    int spd1 = GetSpeedValue(rWheelTicks ,wheelTicks);
+    int spd2 = GetSpeedValue(lWheelTicks, wheelTicks);
+    Serial.print("spd1 ");
+    Serial.print(spd1);
+    Serial.print(" spd2 ");
+    Serial.println(spd2);
 
-  digitalWrite(dirPinR, LOW);               //FWD
-  analogWrite(spdPinR, GetSpeedValue(rWheelTicks ,wheelTicks));
-  digitalWrite(dirPinL, HIGH);               //FWD
-  analogWrite(spdPinL, GetSpeedValue(lWheelTicks ,wheelTicks));
-  inMotion = true;
-   
-//    
-//
-//  // Rotate CCW
-//  if(botAngle*57.3 < a){
-//    int wheelTicks = GetDesiredWheelTicks(a);
-//    
-//    digitalWrite(dirPinR, LOW);               //FWD
-//    analogWrite(spdPinR, GetSpeedValue();
-//    digitalWrite(dirPinL, HIGH);               //FWD
-//    analogWrite(spdPinL, 50);
-//    inMotion = true;
-//  }
-//  // Rotate CW
-//  else if(botAngle*57.3 > a){
-//    digitalWrite(dirPinR, HIGH);               //FWD
-//    analogWrite(spdPinR, 50);
-//    digitalWrite(dirPinL, LOW);               //FWD
-//    analogWrite(spdPinL, 50);
-//    inMotion = true;
-//  }
-  
+    digitalWrite(dirPinR, LOW);               //FWD
+    analogWrite(spdPinR, GetSpeedValue(rWheelTicks ,wheelTicks));
+    digitalWrite(dirPinL, HIGH);               //FWD
+    analogWrite(spdPinL, GetSpeedValue(lWheelTicks ,wheelTicks));
+    inMotion = true;
+  }
 }
 
 void GoToPoint(int point)
@@ -661,17 +691,15 @@ void calcAngleCoordinates() {
   botX = botX + distCenter*cos(botAngle);
   botY = botY + distCenter*sin(botAngle);
 
-  // if(curBNOHeading != lastBNOHeading)
-  // {
-  //   lastBNOHeading = curBNOHeading;
-  //   botAngle = curBNOHeading/57.3;
-  // }
+  if(curBNOHeading != lastBNOHeading)
+  {
+    lastBNOHeading = curBNOHeading;
+    botAngle = curBNOHeading/57.3;
+  }
   
   rWheelChange = 0;
   lWheelChange = 0;
   angleChange = 0;
-
-  
 
 }
 
