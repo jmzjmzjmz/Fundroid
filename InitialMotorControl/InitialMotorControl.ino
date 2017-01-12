@@ -349,29 +349,29 @@ void loop() {
 
     //GoToPoint(490);
     // Serial.println("Go to Angle 30");
-    goToAngle(30);
+    goToAngle(90);
   }
-  // else if(curMove == 1)
-  // {
-  //   goToAngle(0);
-  // }
+  else if(curMove == 1)
+  {
+    goToAngle(0);
+  }
   // else if(curMove == 2)
   // {
   //   GoToPoint(490);
   // }
-  // else if(curMove == 3)
-  // {
-  //   goToAngle(360);
-  // }
+  else if(curMove == 3)
+  {
+    goToAngle(270);
+  }
   // else if(curMove == 4)
   // {
   //   GoToPoint(100);
   // }
-  // else if(curMove == 5)
-  // {
-  //   goToAngle(270);
-  // }
-  // else if(curMove == 6)
+  else if(curMove == 5)
+  {
+    goToAngle(180);
+  }
+  //else if(curMove == 6)
   // {
   //   GoToPoint(100);
   // }
@@ -488,6 +488,7 @@ void goToAngle(int a){
   else if(enterNudgeSequence && IsAngleAcceptable(a))
   {
     inMotion = false;
+    enterNudgeSequence = false;
   }
   else if(enterNudgeSequence)
   {
