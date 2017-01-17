@@ -63,10 +63,12 @@ void FindBestFitLineInDataSet(REAL x[], REAL y[], int n, int WallShouldBeOnRight
 {
 	int acceptableNumberOfReads = 3;
 	double acceptableRSquared = 0.95;
+	double outlierThreshold = 30.0;
 	int maxCycles = 5;
 	REAL newX[MAX_READS];
 	REAL newY[MAX_READS];
 
+	PrintXY(x,y, n);
 	REAL m,b,r;
     int lineStatus = linreg(n,x,y,&m,&b,&r);
     cout << "LineStatus: " <<  lineStatus << endl;
@@ -85,7 +87,6 @@ void FindBestFitLineInDataSet(REAL x[], REAL y[], int n, int WallShouldBeOnRight
     	int curCycle = 0;
     	while(rSqured < acceptableRSquared && curCycle < maxCycles)
     	{
-    		PrintXY(x, y, n);
     		curCycle++;
     		// Cut off all data on left side of line
     		if(WallShouldBeOnRight)
@@ -107,28 +108,52 @@ void FindBestFitLineInDataSet(REAL x[], REAL y[], int n, int WallShouldBeOnRight
     			}
 
     			n = numAdded;
+    			
+    		}
+    		else
+    		{
+    			int numAdded = 0;
     			for(int i = 0; i < n; i++)
     			{
-    				x[i] = newX[i];
-    				y[i] = newY[i];
+    				double expectedXforY = (y[i]-b)/m;
+    				if(expectedXforY >= x[i])
+    				{
+    					newX[numAdded] = x[i];
+    					newY[numAdded] = y[i];
+    					numAdded++;
+    				}
+    				else
+    				{
+    					cout << "Expected X:" << expectedXforY << " For ValY: " << y[i] << endl;
+    				}
     			}
 
-    			lineStatus = linreg(n,x,y,&m,&b,&r);
-    			rSqured = r*r;
-    			cout << "LineStatus: " <<  lineStatus << endl;
-    			cout << "Slope: " << m <<  " SlopeAngle: " << Angle << " Intercept: " << b << " R^2:" << rSqured << endl;
+    			n = numAdded;
     		}
-    	}
+
+    		for(int i = 0; i < n; i++)
+    		{
+    				x[i] = newX[i];
+    				y[i] = newY[i];
+    		}
+
+			PrintXY(x, y, n);
+			lineStatus = linreg(n,x,y,&m,&b,&r);
+			rSqured = r*r;
+			double Angle = atan(m)*180/3.14;
+			cout << "LineStatus: " <<  lineStatus << endl;
+			cout << "Slope: " << m <<  " SlopeAngle: " << Angle << " Intercept: " << b << " R^2:" << rSqured << endl;
+		}
     }
 }
 
 int main()
 {
-	int curN = 5;
-	int WallShouldBeOnRight = 1;
+	int curN = 7;
+	int WallShouldBeOnRight = 0;
 
-    REAL x[6]= {3, 9, 15, 21,  10};
-    REAL y[6]= {20, 16, 12, 8, 4};
+    REAL x[MAX_READS]= {3, 3.1, 3.25, 3.35,  3.4, 3.5, 3.55, 3.7, 3.8, 3.9, 4, 10};
+    REAL y[MAX_READS]= {20, 16, 12,    8,    4,  0 ,   -4, -8, -12, -16, -20, 34};
 
     FindBestFitLineInDataSet(x, y, curN, WallShouldBeOnRight);
 
