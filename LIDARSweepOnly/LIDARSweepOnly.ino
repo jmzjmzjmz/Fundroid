@@ -44,7 +44,7 @@ boolean FoundZero = false;
 struct LidarRead{
   double angle;
   int reading;
-}
+};
 
 int curDataPoints = 0;
 LidarRead dataPoints[staticDataSet];
@@ -163,9 +163,9 @@ void Sweep(double fromAngle, double toAngle)
   while(!done)
   {
     stepForward();
-    if(GetAngleFromStep(curStep) > fromAngle && GetAngleFromStep < toAngle)
+    if(GetAngleFromStep(curStep) > fromAngle && GetAngleFromStep(curStep) < toAngle)
     {
-      int distance = myLidarLite.distance()
+      int distance = myLidarLite.distance();
       double Angle = GetAngleFromStep(curStep);
 
       LidarRead curRead;
