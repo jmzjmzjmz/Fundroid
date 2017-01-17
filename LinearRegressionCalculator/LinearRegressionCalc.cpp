@@ -52,7 +52,7 @@ int linreg(int n, const REAL x[], const REAL y[], REAL* m, REAL* b, REAL* r)
 int main()
 {
     int n = 6;
-    REAL x[6]= {1, 2, 4,  5,  10, 20};
+    REAL x[6]= {3, 3, 3,  3,  3, 4};
     REAL y[6]= {4, 6, 12, 15, 34, 68};
 
     REAL m,b,r;
