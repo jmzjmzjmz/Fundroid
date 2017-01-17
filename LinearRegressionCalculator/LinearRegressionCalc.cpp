@@ -51,14 +51,24 @@ int linreg(int n, const REAL x[], const REAL y[], REAL* m, REAL* b, REAL* r)
 
 int main()
 {
-    int n = 6;
-    REAL x[6]= {3, 3, 3,  3,  3, 4};
-    REAL y[6]= {4, 6, 12, 15, 34, 68};
+    int n = 5;
+    REAL x[6]= {3, 3, 5,  3,  3};
+    REAL y[6]= {4, 8, 12, 16, 20};
 
     REAL m,b,r;
-    linreg(n,x,y,&m,&b,&r);
-    REAL rSqured = r*r;
+    int lineStatus = linreg(n,x,y,&m,&b,&r);
+    cout << "LineStatus: " <<  lineStatus << endl;
 
-    cout << m << " " << b << " " << rSqured << endl;
+    if(lineStatus == 1)
+    {
+    	cout << "Perfectly Parallel" << endl;
+    }
+    else
+    {
+    	REAL rSqured = r*r;
+
+    	cout << "Slope: " << m << " Intercept: " << b << " R^2:" << rSqured << endl;
+    }
+
     return 0;
 }
