@@ -28,7 +28,7 @@ LIDARLite myLidarLite;
 
 int dirPin = 2;
 int stepPin = 3;
-int stepTime = 2;
+int stepTime = 10;
 int curStep = 0;
 
 int optoPin = 11;
@@ -38,7 +38,7 @@ int num_Readings = 0;
 
 boolean FoundZero = false;
 
-#define staticDataSet 5000
+#define staticDataSet 300
 #define StepsPerRotation 200
 
 struct LidarRead{
@@ -153,6 +153,17 @@ void Initialize()
   curStep = 0;
 }
 
+void PrintSweepInfo()
+{
+  for(int i = 0; i<curDataPoints; i++)
+  {
+    Serial.print("Angle: ");
+    Serial.print(dataPoints[i].angle);
+    Serial.print(" Distance: ");
+    Serial.println(dataPoints[i].reading);
+  }
+}
+
 void Sweep(double fromAngle, double toAngle)
 {
   Initialize();
@@ -165,6 +176,8 @@ void Sweep(double fromAngle, double toAngle)
     stepForward();
     if(GetAngleFromStep(curStep) > fromAngle && GetAngleFromStep(curStep) < toAngle)
     {
+      Serial.print("Read at Angle: ");
+      Serial.println(GetAngleFromStep(curStep));
       int distance = myLidarLite.distance();
       double Angle = GetAngleFromStep(curStep);
 
@@ -176,6 +189,7 @@ void Sweep(double fromAngle, double toAngle)
     }
     else if(GetAngleFromStep(curStep) > toAngle)
     {
+      Serial.println("End Sweep");
       done = true;
     }
   }
@@ -184,7 +198,8 @@ void Sweep(double fromAngle, double toAngle)
 void loop()
 {
 
-  
+  Sweep(0, 200);
+  PrintSweepInfo();
 
 }
 
