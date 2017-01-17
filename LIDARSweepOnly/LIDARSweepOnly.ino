@@ -153,11 +153,26 @@ void Initialize()
   curStep = 0;
 }
 
+double GetRadiansFromDegrees(double Degrees)
+{
+  return (Degrees/180)*3.14159;
+}
+
 void PrintSweepInfo()
 {
   for(int i = 0; i<curDataPoints; i++)
   {
-    Serial.print("Angle: ");
+    double radians = GetRadiansFromDegrees(dataPoints[i].angle);
+    double radius = dataPoints[i].reading;
+
+    double x = radius*cos(radians);
+    double y = radius*sin(radians);
+
+    Serial.print("X: ");
+    Serial.print(x);
+    Serial.print(" Y: ");
+    Serial.print(y);
+    Serial.print(" Angle: ");
     Serial.print(dataPoints[i].angle);
     Serial.print(" Distance: ");
     Serial.println(dataPoints[i].reading);
