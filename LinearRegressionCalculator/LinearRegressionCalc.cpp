@@ -5,7 +5,7 @@ using namespace std;
 
 //#define REAL float
 #define REAL double
-
+#define MAX_READS 300
 
 inline static REAL sqr(REAL x) {
     return x*x;
@@ -59,21 +59,16 @@ void PrintXY(REAL x[], REAL y[], int n)
 	cout << endl;
 }
 
-int main()
+void FindBestFitLineInDataSet(REAL x[], REAL y[], int n, int WallShouldBeOnRight)
 {
 	int acceptableNumberOfReads = 3;
 	double acceptableRSquared = 0.95;
-	int curN = 5;
 	int maxCycles = 5;
-	int WallShouldBeOnRight = 1;
-	REAL newX[12];
-	REAL newY[12];
+	REAL newX[MAX_READS];
+	REAL newY[MAX_READS];
 
-    REAL x[6]= {3, 9, 15, 21,  10};
-    REAL y[6]= {20, 16, 12, 8, 4};
-
-    REAL m,b,r;
-    int lineStatus = linreg(curN,x,y,&m,&b,&r);
+	REAL m,b,r;
+    int lineStatus = linreg(n,x,y,&m,&b,&r);
     cout << "LineStatus: " <<  lineStatus << endl;
 
     if(lineStatus == 1)
@@ -90,13 +85,13 @@ int main()
     	int curCycle = 0;
     	while(rSqured < acceptableRSquared && curCycle < maxCycles)
     	{
-    		PrintXY(x, y, curN);
+    		PrintXY(x, y, n);
     		curCycle++;
     		// Cut off all data on left side of line
     		if(WallShouldBeOnRight)
     		{
     			int numAdded = 0;
-    			for(int i = 0; i < curN; i++)
+    			for(int i = 0; i < n; i++)
     			{
     				double expectedXforY = (y[i]-b)/m;
     				if(expectedXforY <= x[i])
@@ -111,20 +106,31 @@ int main()
     				}
     			}
 
-    			curN = numAdded;
-    			for(int i = 0; i < curN; i++)
+    			n = numAdded;
+    			for(int i = 0; i < n; i++)
     			{
     				x[i] = newX[i];
     				y[i] = newY[i];
     			}
 
-    			lineStatus = linreg(curN,x,y,&m,&b,&r);
+    			lineStatus = linreg(n,x,y,&m,&b,&r);
     			rSqured = r*r;
     			cout << "LineStatus: " <<  lineStatus << endl;
     			cout << "Slope: " << m <<  " SlopeAngle: " << Angle << " Intercept: " << b << " R^2:" << rSqured << endl;
     		}
     	}
     }
+}
+
+int main()
+{
+	int curN = 5;
+	int WallShouldBeOnRight = 1;
+
+    REAL x[6]= {3, 9, 15, 21,  10};
+    REAL y[6]= {20, 16, 12, 8, 4};
+
+    FindBestFitLineInDataSet(x, y, curN, WallShouldBeOnRight);
 
     return 0;
 }
