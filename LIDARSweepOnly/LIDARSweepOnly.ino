@@ -29,14 +29,31 @@ LIDARLite myLidarLite;
 int dirPin = 2;
 int stepPin = 3;
 int stepTime = 2;
+int curStep = 0;
 
 int optoPin = 11;
+double angleOffset = 0;
 
 int num_Readings = 0;
 
-#define stepsForFullRotation 5000
+boolean FoundZero = false;
 
-int dataPoints[stepsForFullRotation];
+#define staticDataSet 5000
+#define StepsPerRotation 200
+
+struct LidarRead{
+  double angle;
+  int reading;
+}
+
+int curDataPoints = 0;
+LidarRead dataPoints[staticDataSet];
+
+double GetAngleFromStep(int step)
+{
+  double floatStep = step;
+  return 360.0*(floatStep/StepsPerRotation) + angleOffset;
+}
 
 void setup()
 {
@@ -109,6 +126,8 @@ void stepForward()
   delay(stepTime/2);
   digitalWrite(stepPin, LOW);
   delay(stepTime/2);
+
+  curStep++;
 }
 
 void stepBackward()
@@ -119,53 +138,59 @@ void stepBackward()
   delay(stepTime/2);
   digitalWrite(stepPin, LOW);
   delay(stepTime/2);
+
+  curStep--;
+}
+
+void Initialize()
+{
+  FoundZero = false;
+  while(!FoundZero)
+  {
+    stepBackward();
+  }
+
+  curStep = 0;
+}
+
+void Sweep(double fromAngle, double toAngle)
+{
+  Initialize();
+  curDataPoints = 0;
+
+  boolean done = false;
+
+  while(!done)
+  {
+    stepForward();
+    if(GetAngleFromStep(curStep) > fromAngle && GetAngleFromStep < toAngle)
+    {
+      int distance = myLidarLite.distance()
+      double Angle = GetAngleFromStep(curStep);
+
+      LidarRead curRead;
+      curRead.angle = Angle;
+      curRead.reading = distance;
+      dataPoints[curDataPoints] = curRead;
+      curDataPoints++;
+    }
+    else if(GetAngleFromStep(curStep) > toAngle)
+    {
+      done = true;
+    }
+  }
 }
 
 void loop()
 {
-  /*
-    distance(bool biasCorrection, char lidarliteAddress)
 
-    Take a distance measurement and read the result.
-
-    Parameters
-    ----------------------------------------------------------------------------
-    biasCorrection: Default true. Take aquisition with receiver bias
-      correction. If set to false measurements will be faster. Receiver bias
-      correction must be performed periodically. (e.g. 1 out of every 100
-      readings).
-    lidarliteAddress: Default 0x62. Fill in new address here if changed. See
-      operating manual for instructions.
-  */
-//    Serial.println("About to if");
-    if(num_Readings % 100 == 0) dataPoints[num_Readings] = myLidarLite.distance();
-    else dataPoints[num_Readings] = myLidarLite.distance(false);
-
-//    Serial.println("About to Step Forward");
-    stepForward();
-//    Serial.println(num_Readings);
-    num_Readings++;
   
 
 }
 
-
-void sendData(){
-  
-  for(int i = 0; i < num_Readings; i++){
-    Serial.print(dataPoints[i]);
-    if(i != num_Readings - 1 ) Serial.print(",");
-  }
-  Serial.println();
-
-}
 
 void fullRotation(){
-sendData();
-//    Serial.print(num_Readings);
-//    Serial.println(": OPTO");
-    num_Readings = 0;
-//    delay(1000);
+  FoundZero = true;
 }
 
 
