@@ -12,7 +12,7 @@ inline static REAL sqr(REAL x) {
 }
 
 
-int linreg(int n, const REAL x[], const REAL y[], REAL* m, REAL* b, REAL* r)
+int linreg(int n, REAL x[], REAL y[], REAL* m, REAL* b, REAL* r)
 {
     REAL   sumx = 0.0;                        /* sum of x                      */
     REAL   sumx2 = 0.0;                       /* sum of x**2                   */
@@ -49,14 +49,31 @@ int linreg(int n, const REAL x[], const REAL y[], REAL* m, REAL* b, REAL* r)
    return 0; 
 }
 
+void PrintXY(REAL x[], REAL y[], int n)
+{
+	for(int i = 0; i < n; i++)
+	{
+		cout << "(" << x[i] << "," << y[i] << ")";
+	}
+
+	cout << endl;
+}
+
 int main()
 {
-    int n = 5;
-    REAL x[6]= {3, 3, 5,  3,  3};
-    REAL y[6]= {4, 8, 12, 16, 20};
+	int acceptableNumberOfReads = 3;
+	double acceptableRSquared = 0.95;
+	int curN = 5;
+	int maxCycles = 5;
+	int WallShouldBeOnRight = 1;
+	REAL newX[12];
+	REAL newY[12];
+
+    REAL x[6]= {3, 9, 15, 21,  10};
+    REAL y[6]= {20, 16, 12, 8, 4};
 
     REAL m,b,r;
-    int lineStatus = linreg(n,x,y,&m,&b,&r);
+    int lineStatus = linreg(curN,x,y,&m,&b,&r);
     cout << "LineStatus: " <<  lineStatus << endl;
 
     if(lineStatus == 1)
@@ -65,9 +82,48 @@ int main()
     }
     else
     {
+    	double Angle = atan(m)*180/3.14;
     	REAL rSqured = r*r;
 
-    	cout << "Slope: " << m << " Intercept: " << b << " R^2:" << rSqured << endl;
+    	cout << "Slope: " << m <<  " SlopeAngle: " << Angle << " Intercept: " << b << " R^2:" << rSqured << endl;
+
+    	int curCycle = 0;
+    	while(rSqured < acceptableRSquared && curCycle < maxCycles)
+    	{
+    		PrintXY(x, y, curN);
+    		curCycle++;
+    		// Cut off all data on left side of line
+    		if(WallShouldBeOnRight)
+    		{
+    			int numAdded = 0;
+    			for(int i = 0; i < curN; i++)
+    			{
+    				double expectedXforY = (y[i]-b)/m;
+    				if(expectedXforY <= x[i])
+    				{
+    					newX[numAdded] = x[i];
+    					newY[numAdded] = y[i];
+    					numAdded++;
+    				}
+    				else
+    				{
+    					cout << "Expected X:" << expectedXforY << " For ValY: " << y[i] << endl;
+    				}
+    			}
+
+    			curN = numAdded;
+    			for(int i = 0; i < curN; i++)
+    			{
+    				x[i] = newX[i];
+    				y[i] = newY[i];
+    			}
+
+    			lineStatus = linreg(curN,x,y,&m,&b,&r);
+    			rSqured = r*r;
+    			cout << "LineStatus: " <<  lineStatus << endl;
+    			cout << "Slope: " << m <<  " SlopeAngle: " << Angle << " Intercept: " << b << " R^2:" << rSqured << endl;
+    		}
+    	}
     }
 
     return 0;
