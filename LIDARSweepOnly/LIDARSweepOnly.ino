@@ -23,6 +23,54 @@
 #include <Bounce.h>
 #include <Wire.h>
 #include <LIDARLite.h>
+#include <math.h>
+
+#define REAL double
+#define MAX_READS 300
+
+inline static REAL sqr(REAL x) {
+    return x*x;
+}
+
+
+int linreg(int n, REAL x[], REAL y[], REAL* m, REAL* b, REAL* r)
+{
+    REAL   sumx = 0.0;                        /* sum of x                      */
+    REAL   sumx2 = 0.0;                       /* sum of x**2                   */
+    REAL   sumxy = 0.0;                       /* sum of x * y                  */
+    REAL   sumy = 0.0;                        /* sum of y                      */
+    REAL   sumy2 = 0.0;                       /* sum of y**2                   */
+
+   for (int i=0;i<n;i++)   
+      { 
+      sumx  += x[i];       
+      sumx2 += sqr(x[i]);  
+      sumxy += x[i] * y[i];
+      sumy  += y[i];      
+      sumy2 += sqr(y[i]); 
+      } 
+
+   REAL denom = (n * sumx2 - sqr(sumx));
+   if (denom == 0) {
+       // singular matrix. can't solve the problem.
+       *m = 0;
+       *b = 0;
+       if (r) *r = 0;
+       return 1;
+   }
+
+   *m = (n * sumxy  -  sumx * sumy) / denom;
+   *b = (sumy * sumx2  -  sumx * sumxy) / denom;
+   if (r!=NULL) {
+      *r = (sumxy - sumx * sumy / n) /          /* compute correlation coeff     */
+            sqrt((sumx2 - sqr(sumx)/n) *
+            (sumy2 - sqr(sumy)/n));
+   }
+
+   return 0; 
+}
+
+
 
 LIDARLite myLidarLite;
 
@@ -118,6 +166,88 @@ void setup()
 
 }
 
+void FindBestFitLineInDataSet(REAL x[], REAL y[], int n, int WallShouldBeOnRight)
+{
+  int acceptableNumberOfReads = 3;
+  double acceptableRSquared = 0.95;
+  double outlierThreshold = 30.0;
+  int maxCycles = 5;
+  REAL newX[MAX_READS];
+  REAL newY[MAX_READS];
+
+  REAL m,b,r;
+  int lineStatus = linreg(n,x,y,&m,&b,&r);
+
+  if(lineStatus == 1)
+  {
+    Serial.println("Perfectly Parallel");
+  }
+  else
+  {
+    double Angle = atan(m)*180/3.14;
+    REAL rSqured = r*r;
+
+    Serial.print("Angle: ");
+    Serial.print(Angle);
+    Serial.print(" rSquared: ");
+    Serial.println(rSqured);
+
+  //   int curCycle = 0;
+  //   while(rSqured < acceptableRSquared && curCycle < maxCycles)
+  //   {
+  //     curCycle++;
+  //     // Cut off all data on left side of line
+  //     if(WallShouldBeOnRight)
+  //     {
+  //       int numAdded = 0;
+  //       for(int i = 0; i < n; i++)
+  //       {
+  //         double expectedXforY = (y[i]-b)/m;
+  //         if(expectedXforY <= x[i])
+  //         {
+  //           newX[numAdded] = x[i];
+  //           newY[numAdded] = y[i];
+  //           numAdded++;
+  //       }
+
+  //       n = numAdded;
+  //     }
+  //     else
+  //     {
+  //       int numAdded = 0;
+  //       for(int i = 0; i < n; i++)
+  //       {
+  //         double expectedXforY = (y[i]-b)/m;
+  //         if(expectedXforY >= x[i])
+  //         {
+  //           newX[numAdded] = x[i];
+  //           newY[numAdded] = y[i];
+  //           numAdded++;
+  //         }
+  //         else
+  //         {
+  //           cout << "Expected X:" << expectedXforY << " For ValY: " << y[i] << endl;
+  //         }
+  //       }
+
+  //       n = numAdded;
+  //     }
+
+  //     for(int i = 0; i < n; i++)
+  //     {
+  //         x[i] = newX[i];
+  //         y[i] = newY[i];
+  //     }
+
+  //   lineStatus = linreg(n,x,y,&m,&b,&r);
+  //   rSqured = r*r;
+  //   double Angle = atan(m)*180/3.14;
+  //   cout << "LineStatus: " <<  lineStatus << endl;
+  //   cout << "Slope: " << m <<  " SlopeAngle: " << Angle << " Intercept: " << b << " R^2:" << rSqured << endl;
+  // }
+  }
+}
+
 void stepForward()
 {
   digitalWrite(dirPin, HIGH);
@@ -179,6 +309,41 @@ void PrintSweepInfo()
   }
 }
 
+void PrintSweepXY()
+{
+  for(int i = 0; i<curDataPoints; i++)
+  {
+    double radians = GetRadiansFromDegrees(dataPoints[i].angle);
+    double radius = dataPoints[i].reading;
+
+    double x = radius*cos(radians);
+    double y = radius*sin(radians);
+
+    Serial.print(x);
+    Serial.print((char)0x09);
+    Serial.println(y);
+  }
+}
+
+void FindLinesFromSweep(boolean OnRight)
+{
+  REAL xList[staticDataSet];
+  REAL yList[staticDataSet];
+  for(int i = 0; i < curDataPoints; i++)
+  {
+    double radians = GetRadiansFromDegrees(dataPoints[i].angle);
+    double radius = dataPoints[i].reading;
+
+    double x = radius*cos(radians);
+    double y = radius*sin(radians);
+
+    xList[i] = x;
+    yList[i] = y;
+  }
+
+  FindBestFitLineInDataSet(xList, yList, curDataPoints, OnRight);
+}
+
 void Sweep(double fromAngle, double toAngle)
 {
   Initialize();
@@ -213,9 +378,10 @@ void Sweep(double fromAngle, double toAngle)
 void loop()
 {
 
-  Sweep(0, 200);
-  PrintSweepInfo();
-
+  Sweep(40, 100);
+  //PrintSweepInfo();
+  FindLinesFromSweep(true);
+  PrintSweepXY();
 }
 
 
