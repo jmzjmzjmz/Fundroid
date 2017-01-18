@@ -19,6 +19,15 @@ void calcAngleCoordinates();
 void printInfo();
 void infoToProcessing();
 
+#define COORDINATOR_PORT Serial
+enum MotorControls{RotateAbsolute = 0, MoveToPosition = 1, Stop = 2, Start = 3};
+enum MotorErrors{MotionComplete = 0, RotationFailure = 1, MoveToPositionFailure = 2};
+
+int motionToDo = 0;
+int curPosition = 0;
+
+
+
 #define BNO055_SAMPLERATE_DELAY_MS (50)
 
 Adafruit_BNO055 bno = Adafruit_BNO055();
@@ -180,9 +189,114 @@ boolean inMotion = false;
 boolean targetSet = false;
 float CorrectAngle = 0.0;
 
+// Return Success = 0, Failure = 1
+int ParseCommand(char ControlByte, String ControlArgument)
+{
+  ControlByte = ControlByte - '0';
+
+  if(ControlByte == RotateAbsolute)
+  {
+    motionToDo = ControlByte;
+    curPosition = ControlArgument.toInt();
+    Serial.print("GO TO ANGLE: ");
+    Serial.println(curPosition);
+    inMotion = true;
+    goToAngle(curPosition);
+
+#ifdef DEBUG
+    Serial.print("Found rotate command with value of ");
+    Serial.println(curMotion.position);
+#endif
+  }
+  else if(ControlByte == MoveToPosition)
+  {
+    motionToDo = ControlByte;
+    curPosition = ControlArgument.toInt();
+    Serial.print("GO TO POSITION: ");
+    Serial.println(curPosition);
+    inMotion = true;
+    GoToPoint(curPosition);
+
+    #ifdef DEBUG
+    Serial.print("Found Move command with value of ");
+    Serial.println(curMotion.position);
+    #endif
+  }
+  else if(ControlByte == Stop)
+  {
+    StopBot();
+    inMotion = false;
+    #ifdef DEBUG
+    Serial.println("Disarmed");
+    #endif
+  }
+  else if(ControlByte == Start)
+  {
+    #ifdef DEBUG
+    Serial.println("Armed");
+    #endif
+  }
+  else
+  {
+    #ifdef DEBUG
+    Serial.println("Command Not Found");
+    #endif
+
+    return 1; // Command Not Found
+  }
+
+  return 0;
+}
+
+// Return Success = 0, Failure = 1
+int CheckForCommands()
+{
+  enum ReadStates{ReadCommand, ReadComma, ReadArgument, end};
+
+  char ControlByte;
+  String ControlArgument;
+
+  ReadStates state = ReadCommand;
+  if(COORDINATOR_PORT.available())
+  {
+    while(COORDINATOR_PORT.available())
+    {
+      if(state == ReadCommand)
+      {
+        ControlByte = COORDINATOR_PORT.read();
+        state = ReadComma;
+      }
+      else if(state == ReadComma)
+      {
+        char comma = COORDINATOR_PORT.read();
+
+        if(comma != ',')
+        {
+          return 1;
+        }
+
+        state = ReadArgument;
+      }
+      else if(state == ReadArgument)
+      {
+        ControlArgument = COORDINATOR_PORT.readStringUntil('&');
+        state = end;
+      }
+      else
+      {
+        break;
+      }
+    }
+
+    return ParseCommand(ControlByte, ControlArgument);
+  }
+
+  return 0;
+}
+
 boolean IsInitializeAngleClose()
 {
-  if(curBNOHeading > 359.0 || curBNOHeading < 1.0)
+  if(curBNOHeading > 357.0 || curBNOHeading < 3.0)
     return true;
 
   return false;
@@ -341,71 +455,30 @@ void loop() {
     InitializeBot();
   }
 
-  if(curMove == 0)
-  {
-    // 245 STEPS GOES 1.02M
-    //GoToPoint(245);
+  CheckForCommands();
 
-    //goToAngle(180);
-
-    //GoToPoint(490);
-    // Serial.println("Go to Angle 30");
-    goToAngle(63);
-  }
-  else if(curMove == 1)
+  if(motionToDo == RotateAbsolute && inMotion)
   {
-    GoToPointMetric(5);
+    goToAngle(curPosition);
   }
-  else if(curMove == 2)
+  else if(motionToDo == MoveToPosition && inMotion)
   {
-    goToAngle(132);
+    GoToPoint(curPosition);
   }
-  else if(curMove == 3)
-  {
-    GoToPointMetric(5);
-  }
-  else if(curMove == 4)
-  {
-    goToAngle(222);
-  }
-  else if(curMove == 5)
-  {
-    GoToPointMetric(5);
-  }
-  else if(curMove == 6)
-  {
-    goToAngle(333);
-  }
-  else if(curMove == 7)
-  {
-    GoToPointMetric(5);
-  }
-  // else if(curMove == 8)
-  // {
-  //   GoToPoint(100);
-  // }
 
   calcAngleCoordinates();
 
   if(!inMotion)
   {
     targetSet = false;
-    curMove++;
-    Serial.print("Cur Angle: ");
-    Serial.print(botAngle*57.3);
-    Serial.print(" On to move: ");
-    Serial.println(curMove);
-    DelayAndReadBNO(1000);
-
-    if(curMove > 7)
-      curMove = 0;
+    Serial.println("Motion Complete");
   }
 
 }
 
 boolean IsAnglePreNudgeAcceptable(int a)
 {
-  if(a+3 > botAngle*57.3 && a-3 < botAngle*57.3)
+  if(a+0.5 > botAngle*57.3 && a-0.5 < botAngle*57.3)
   {
     return true;
   }
@@ -424,7 +497,7 @@ boolean IsAngleAcceptable(int a)
   return false;
 }
 
-float kP = 0.1;
+float kP = 0.01;
 int GetSpeedValue(int curTicks, int destTicks)
 {
 
@@ -472,20 +545,25 @@ void nudgeToAngle(int a)
 {
   boolean CCWRotate = ShouldRotateCCW(a);
 
+  float kp = 2;
+  float botAngleDegree = botAngle*57.3;
+  float diff = abs(botAngle-a);
+
+
   if(CCWRotate)
   {
     RotateBotCCW();
-    DelayAndReadBNO(200);
+    DelayAndReadBNO(kp*diff);
     StopBot();
   }
   else
   {
     RotateBotCW();
-    DelayAndReadBNO(200);
+    DelayAndReadBNO(kp*diff);
     StopBot();
   }
 
-  DelayAndReadBNO(1000);
+  DelayAndReadBNO(1500);
 
 }
 
