@@ -456,6 +456,21 @@ void Sweep(double fromAngle, double toAngle)
 int curWayPoint = 0;
 boolean DataSent = false;
 boolean sweeping = false;
+boolean waitingForButton = false;
+boolean buttonPressed = false;
+
+void OnCompleteWayPoint()
+{
+  curWayPoint++;
+  DataSent = false;
+  sweeping = false;
+  waitingForButton = false;
+  buttonPressed = false;
+
+  Serial.print("Moving to Waypoint ");
+  Serial.println(curWayPoint);
+}
+
 void loop()
 {
   if(curWayPoint == 1)
@@ -526,22 +541,18 @@ void loop()
   //   Serial.println("SWEEP ERROR");
   // }
 
-  if(CheckForMotionComplete() && !sweeping)
+  if(CheckForMotionComplete() && !sweeping && !waitingForButton)
   {
     // Move on to next motion
-    curWayPoint++;
-    DataSent = false;
-    Serial.print("Moving to Waypoint ");
-    Serial.println(curWayPoint);
+    OnCompleteWayPoint();
   }
   else if(sweeping && SweepDone)
   {
-    FLUSHMOTORBUFFER();
-    curWayPoint++;
-    DataSent = false;
-    sweeping = false;
-    Serial.print("Moving to Waypoint ");
-    Serial.println(curWayPoint);
+    OnCompleteWayPoint();
+  }
+  else if(waitingForButton && buttonPressed)
+  {
+     OnCompleteWayPoint();
   }
 }
 
