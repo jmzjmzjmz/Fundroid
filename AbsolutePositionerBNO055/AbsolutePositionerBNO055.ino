@@ -99,6 +99,8 @@ void StartBNO()
   bno.setExtCrystalUse(true);
 
   WaitForCalibrationComplete();
+
+  bno.begin();
 }
 
 long lastBNORead = 0;
@@ -114,16 +116,15 @@ void ReadBNO()
     // - VECTOR_EULER         - degrees
     // - VECTOR_LINEARACCEL   - m/s^2
     // - VECTOR_GRAVITY       - m/s^2
-    imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
-
-    /* Display the floating point data */
-    Serial.print("X: ");
-    Serial.print(euler.x());
-    Serial.print(" Y: ");
-    Serial.print(euler.y());
-    Serial.print(" Z: ");
-    Serial.print(euler.z());
-    Serial.println("\t\t");
+    sensors_event_t event;
+    bno.getEvent(&event);
+    Serial.print(F("Orientation: "));
+    Serial.print((float)event.orientation.x);
+    Serial.print(F(" "));
+    Serial.print((float)event.orientation.y);
+    Serial.print(F(" "));
+    Serial.print((float)event.orientation.z);
+    Serial.println(F(""));
 
     lastBNORead = millis();
   }

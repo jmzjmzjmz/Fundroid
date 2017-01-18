@@ -25,8 +25,7 @@ enum MotorErrors{MotionComplete = 0, RotationFailure = 1, MoveToPositionFailure 
 
 int motionToDo = 0;
 int curPosition = 0;
-
-
+boolean isInitialized = false;
 
 #define BNO055_SAMPLERATE_DELAY_MS (50)
 
@@ -110,18 +109,35 @@ void ReadBNO()
     // - VECTOR_EULER         - degrees
     // - VECTOR_LINEARACCEL   - m/s^2
     // - VECTOR_GRAVITY       - m/s^2
-    imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
+    if(!isInitialized)
+    {
+      imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
 
-    /* Display the floating point data */
-    Serial.print("X: ");
-    Serial.print(euler.x());
-    Serial.print(" Y: ");
-    Serial.print(euler.y());
-    Serial.print(" Z: ");
-    Serial.print(euler.z());
-    Serial.println("\t\t");
+      /* Display the floating point data */
+      Serial.print("X: ");
+      Serial.print(euler.x());
+      Serial.print(" Y: ");
+      Serial.print(euler.y());
+      Serial.print(" Z: ");
+      Serial.print(euler.z());
+      Serial.println("\t\t");
 
-    curBNOHeading = euler.x();
+      curBNOHeading = euler.x();
+    }
+    else
+    {
+      sensors_event_t event;
+      bno.getEvent(&event);
+      Serial.print(F("Orientation: "));
+      Serial.print((float)event.orientation.x);
+      Serial.print(F(" "));
+      Serial.print((float)event.orientation.y);
+      Serial.print(F(" "));
+      Serial.print((float)event.orientation.z);
+      Serial.println(F(""));
+
+      curBNOHeading = event.orientation.x;
+    }
 
     lastBNORead = millis();
   }
@@ -349,7 +365,6 @@ void NudgeToZero()
   
 }
 
-boolean isInitialized = false;
 void InitializeBot()
 {
   boolean lessThan180 = false;
@@ -384,6 +399,7 @@ void InitializeBot()
       StopBot();
       botAngle = 0;
       isInitialized = true;
+      bno.begin();
       Serial.println("Initialization Complete. Continuing in 2 seconds");
       delay(2000);
     }
@@ -478,7 +494,7 @@ void loop() {
 
 boolean IsAnglePreNudgeAcceptable(int a)
 {
-  if(a+0.5 > botAngle*57.3 && a-0.5 < botAngle*57.3)
+  if(a+4 > botAngle*57.3 && a-4 < botAngle*57.3)
   {
     return true;
   }
@@ -489,7 +505,7 @@ boolean IsAnglePreNudgeAcceptable(int a)
 int marginOfError = 1;
 boolean IsAngleAcceptable(int a)
 {
-  if(a+0.5 > botAngle*57.3 && a-0.5 < botAngle*57.3)
+  if(a+1.5 > botAngle*57.3 && a-1.5 < botAngle*57.3)
   {
     return true;
   }
@@ -553,13 +569,15 @@ void nudgeToAngle(int a)
   if(CCWRotate)
   {
     RotateBotCCW();
-    DelayAndReadBNO(kp*diff);
+    DelayAndReadBNO(100);
+    // DelayAndReadBNO(kp*diff);
     StopBot();
   }
   else
   {
     RotateBotCW();
-    DelayAndReadBNO(kp*diff);
+    DelayAndReadBNO(100);
+    //DelayAndReadBNO(kp*diff);
     StopBot();
   }
 
