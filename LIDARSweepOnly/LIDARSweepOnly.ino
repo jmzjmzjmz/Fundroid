@@ -82,12 +82,15 @@ int curStep = 0;
 int optoPin = 11;
 double angleOffset = 0;
 
+double sweepTo = 0.0;
+double sweepFrom = 0.0;
+
 int num_Readings = 0;
 
 boolean FoundZero = false;
 
 #define staticDataSet 300
-#define StepsPerRotation 200
+#define StepsPerRotation 400
 
 struct LidarRead{
   double angle;
@@ -164,88 +167,93 @@ void setup()
   */
   myLidarLite.configure(0); // Change this number to try out alternate configurations
 
+  sweepTo = 90;
+  sweepFrom = 0;
+
 }
 
-void FindBestFitLineInDataSet(REAL x[], REAL y[], int n, int WallShouldBeOnRight)
+void BinarySearchForBestLine(REAL x[], REAL y[], int n, double acceptableRSquared)
+{
+  REAL x1[MAX_READS];
+  REAL x2[MAX_READS];
+  REAL y1[MAX_READS];
+  REAL y2[MAX_READS];
+
+  int n1 = n/2;
+  for(int i = 0; i<n/2; i++)
+  {
+    x1[i] = x[i];
+    y1[i] = y[i];
+  }
+
+  REAL m1,b1,r1, rSquared1;
+  rSquared1 = 0.0;
+  int lineStatus = linreg(n1,x1,y1,&m1,&b1,&r1);
+  rSquared1 = r1*r1;
+
+  int n2 = n - n/2;
+  for(int i = n/2; i<n; i++)
+  {
+    x2[i-n/2] = x[i];
+    y2[i-n/2] = y[i];
+  }
+
+  REAL m2,b2,r2, rSquared2;
+  rSquared2 = 0.0;
+  lineStatus = linreg(n2,x2,y2,&m2,&b2,&r2);
+  rSquared2 = r2*r2;
+
+  if(rSquared1 > rSquared2)
+  {
+    sweepFrom = sweepFrom;
+    sweepTo = sweepTo/2;
+  }
+  else
+  {
+    sweepFrom = sweepTo/2;
+    sweepTo = sweepTo;
+  }
+}
+
+double FindBestFitLineInDataSet(REAL x[], REAL y[], int n, int WallShouldBeOnRight)
 {
   int acceptableNumberOfReads = 3;
-  double acceptableRSquared = 0.95;
+  double acceptableRSquared = 0.90;
   double outlierThreshold = 30.0;
   int maxCycles = 5;
   REAL newX[MAX_READS];
   REAL newY[MAX_READS];
 
-  REAL m,b,r;
+  REAL m,b,r, rSquared;
+  rSquared = 0.0;
   int lineStatus = linreg(n,x,y,&m,&b,&r);
 
   if(lineStatus == 1)
   {
     Serial.println("Perfectly Parallel");
+    Serial.println("LINE DETECTED");
   }
   else
   {
     double Angle = atan(m)*180/3.14;
-    REAL rSqured = r*r;
+    rSquared = r*r;
 
     Serial.print("Angle: ");
     Serial.print(Angle);
     Serial.print(" rSquared: ");
-    Serial.println(rSqured);
+    Serial.println(rSquared);
 
-  //   int curCycle = 0;
-  //   while(rSqured < acceptableRSquared && curCycle < maxCycles)
-  //   {
-  //     curCycle++;
-  //     // Cut off all data on left side of line
-  //     if(WallShouldBeOnRight)
-  //     {
-  //       int numAdded = 0;
-  //       for(int i = 0; i < n; i++)
-  //       {
-  //         double expectedXforY = (y[i]-b)/m;
-  //         if(expectedXforY <= x[i])
-  //         {
-  //           newX[numAdded] = x[i];
-  //           newY[numAdded] = y[i];
-  //           numAdded++;
-  //       }
-
-  //       n = numAdded;
-  //     }
-  //     else
-  //     {
-  //       int numAdded = 0;
-  //       for(int i = 0; i < n; i++)
-  //       {
-  //         double expectedXforY = (y[i]-b)/m;
-  //         if(expectedXforY >= x[i])
-  //         {
-  //           newX[numAdded] = x[i];
-  //           newY[numAdded] = y[i];
-  //           numAdded++;
-  //         }
-  //         else
-  //         {
-  //           cout << "Expected X:" << expectedXforY << " For ValY: " << y[i] << endl;
-  //         }
-  //       }
-
-  //       n = numAdded;
-  //     }
-
-  //     for(int i = 0; i < n; i++)
-  //     {
-  //         x[i] = newX[i];
-  //         y[i] = newY[i];
-  //     }
-
-  //   lineStatus = linreg(n,x,y,&m,&b,&r);
-  //   rSqured = r*r;
-  //   double Angle = atan(m)*180/3.14;
-  //   cout << "LineStatus: " <<  lineStatus << endl;
-  //   cout << "Slope: " << m <<  " SlopeAngle: " << Angle << " Intercept: " << b << " R^2:" << rSqured << endl;
-  // }
+    if(rSquared > acceptableRSquared)
+    {
+      Serial.println("LINE DETECTED");
+    }
+    else
+    {
+      BinarySearchForBestLine(x, y, n, acceptableRSquared);
+    }
   }
+
+  return rSquared;
 }
 
 void stepForward()
@@ -377,8 +385,7 @@ void Sweep(double fromAngle, double toAngle)
 
 void loop()
 {
-
-  Sweep(40, 100);
+  Sweep(sweepFrom, sweepTo);
   //PrintSweepInfo();
   FindLinesFromSweep(true);
   PrintSweepXY();
