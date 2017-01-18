@@ -149,6 +149,14 @@ boolean CheckForMotionComplete()
 
   return false;
 }
+
+void FLUSHMOTORBUFFER()
+{
+  while(MOTORCOMMPORT.available())
+  {
+    MOTORCOMMPORT.read();
+  }
+}
 ////////////////////////////////////////////
 ////////////////////////////////////////////
 
@@ -416,6 +424,7 @@ void Sweep(double fromAngle, double toAngle)
     stepForward();
     if(GetAngleFromStep(curStep) > fromAngle && GetAngleFromStep(curStep) < toAngle)
     {
+      delay(100);
       Serial.print("Read at Angle: ");
       Serial.println(GetAngleFromStep(curStep));
       int distance = myLidarLite.distance();
@@ -435,40 +444,64 @@ void Sweep(double fromAngle, double toAngle)
   }
 }
 
+
+
 int curWayPoint = 0;
 boolean DataSent = false;
+boolean sweeping = false;
 void loop()
 {
   if(curWayPoint == 1)
   {
     if(!DataSent)
     {
+      FLUSHMOTORBUFFER();
       MoveMotorToAngle(75);
       DataSent=true;
+      sweeping = false;
     }
   }
   else if(curWayPoint == 2)
   {
     if(!DataSent)
     {
+      FLUSHMOTORBUFFER();
       MoveMotorForward(1);
       DataSent = true;
+      sweeping = false;
     }
   }
   else if(curWayPoint == 3)
   {
     if(!DataSent)
     {
-      MoveMotorToAngle(255);
+      sweepFrom = 100;
+      sweepTo = 180;
       DataSent = true;
+      sweeping = true;
     }
+
+    Sweep(sweepFrom, sweepTo);
+    FindLinesFromSweep(true);
   }
   else if(curWayPoint == 4)
   {
     if(!DataSent)
     {
+      FLUSHMOTORBUFFER();
+      MoveMotorToAngle(255);
+      DataSent = true;
+      sweeping = false;
+    }
+  }
+  else if(curWayPoint == 5)
+  {
+    if(!DataSent)
+    {
+      FLUSHMOTORBUFFER();
       MoveMotorForward(1);
       DataSent = true;
+      sweeping = false;
     }
   }
   
@@ -486,11 +519,20 @@ void loop()
   //   Serial.println("SWEEP ERROR");
   // }
 
-  if(CheckForMotionComplete())
+  if(CheckForMotionComplete() && !sweeping)
   {
     // Move on to next motion
     curWayPoint++;
     DataSent = false;
+    Serial.print("Moving to Waypoint ");
+    Serial.println(curWayPoint);
+  }
+  else if(sweeping && SweepDone)
+  {
+    FLUSHMOTORBUFFER();
+    curWayPoint++;
+    DataSent = false;
+    sweeping = false;
     Serial.print("Moving to Waypoint ");
     Serial.println(curWayPoint);
   }
