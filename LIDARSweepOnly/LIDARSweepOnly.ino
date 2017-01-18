@@ -169,8 +169,8 @@ void setup()
   */
   myLidarLite.configure(0); // Change this number to try out alternate configurations
 
-  sweepTo = 90;
-  sweepFrom = 0;
+  sweepTo = 180;
+  sweepFrom = 90;
 
 }
 
@@ -208,13 +208,18 @@ void BinarySearchForBestLine(REAL x[], REAL y[], int n, double acceptableRSquare
   if(rSquared1 > rSquared2)
   {
     sweepFrom = sweepFrom;
-    sweepTo = sweepTo/2;
+    sweepTo = (sweepTo-sweepFrom)/2 + sweepFrom;
   }
   else
   {
-    sweepFrom = sweepTo/2;
+    sweepFrom = (sweepTo-sweepFrom)/2 + sweepFrom;
     sweepTo = sweepTo;
   }
+
+  Serial.print("SweepTo: ");
+  Serial.print(sweepTo);
+  Serial.print(" SweepFrom: ");
+  Serial.println(sweepFrom);
 }
 
 double FindBestFitLineInDataSet(REAL x[], REAL y[], int n, int WallShouldBeOnRight)
