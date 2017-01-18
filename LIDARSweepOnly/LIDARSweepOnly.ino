@@ -25,13 +25,14 @@
 #include <LIDARLite.h>
 #include <math.h>
 
+#define MOTORCOMMPORT Serial1
+
 #define REAL double
 #define MAX_READS 600
 
 inline static REAL sqr(REAL x) {
     return x*x;
 }
-
 
 int linreg(int n, REAL x[], REAL y[], REAL* m, REAL* b, REAL* r)
 {
@@ -70,8 +71,6 @@ int linreg(int n, REAL x[], REAL y[], REAL* m, REAL* b, REAL* r)
    return 0; 
 }
 
-
-
 LIDARLite myLidarLite;
 
 int dirPin = 2;
@@ -108,10 +107,50 @@ double GetAngleFromStep(int step)
   return 360.0*(floatStep/StepsPerRotation) + angleOffset;
 }
 
+/////////////////////////////////////////////
+//////// FUNNIE MOTOR FEET CONTROLS /////////
+int stepsPerMeter = 240;
+void MoveMotorForward(float meters)
+{
+  int stepsToMove = meters*stepsPerMeter;
+
+  MOTORCOMMPORT.print('1');
+  MOTORCOMMPORT.print(',');
+  MOTORCOMMPORT.print(stepsToMove);
+  MOTORCOMMPORT.print('&');
+}
+
+int curSystemAngle = 0;
+void MoveMotorToAngle(int angle)
+{
+  MOTORCOMMPORT.print('0');
+  MOTORCOMMPORT.print(',');
+  MOTORCOMMPORT.print(angle);
+  MOTORCOMMPORT.print('&');
+
+  curSystemAngle = angle;
+}
+
+boolean CheckForMotionComplete()
+{
+  if(MOTORCOMMPORT.available())
+  {
+    if(MOTORCOMMPORT.read() == '0')
+    {
+      return true;
+    }
+  }
+
+  return false;
+}
+////////////////////////////////////////////
+////////////////////////////////////////////
+
 void setup()
 {
   delay(1000);
   
+  MOTORCOMMPORT.begin(9600);
   Serial.begin(115200); // Initialize serial connection to display distance readings
 
   pinMode(dirPin, OUTPUT);

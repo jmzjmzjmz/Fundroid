@@ -460,6 +460,8 @@ void setup() {
 
 int curMove = 0;
 
+long heartBeatInterval = 1000;
+long lastTime = 0;
 void loop() {
 //setWheelSpeeds();
 //printInfo();            //nice looking display w labels
@@ -485,10 +487,11 @@ void loop() {
 
   calcAngleCoordinates();
 
-  if(!inMotion)
+  if(!inMotion && (millis() - lastTime) > heartBeatInterval)
   {
+    lastTime = millis();
     targetSet = false;
-    Serial.println("Motion Complete");
+    Serial.println("Motion1 Complete");
     COORDINATOR_PORT.print('0');
   }
 
