@@ -26,7 +26,7 @@
 #include <math.h>
 
 #define REAL double
-#define MAX_READS 300
+#define MAX_READS 600
 
 inline static REAL sqr(REAL x) {
     return x*x;
@@ -88,8 +88,10 @@ double sweepFrom = 0.0;
 int num_Readings = 0;
 
 boolean FoundZero = false;
+boolean SweepDone = false;
+boolean SweepError = false;
 
-#define staticDataSet 300
+#define staticDataSet 600
 #define StepsPerRotation 400
 
 struct LidarRead{
@@ -230,8 +232,7 @@ double FindBestFitLineInDataSet(REAL x[], REAL y[], int n, int WallShouldBeOnRig
 
   if(lineStatus == 1)
   {
-    Serial.println("Perfectly Parallel");
-    Serial.println("LINE DETECTED");
+    SweepError = true;
   }
   else
   {
@@ -246,6 +247,7 @@ double FindBestFitLineInDataSet(REAL x[], REAL y[], int n, int WallShouldBeOnRig
     if(rSquared > acceptableRSquared)
     {
       Serial.println("LINE DETECTED");
+      SweepDone = true;
     }
     else
     {
@@ -385,10 +387,19 @@ void Sweep(double fromAngle, double toAngle)
 
 void loop()
 {
-  Sweep(sweepFrom, sweepTo);
-  //PrintSweepInfo();
-  FindLinesFromSweep(true);
-  PrintSweepXY();
+  if(!SweepDone && !SweepError)
+  {
+    Sweep(sweepFrom, sweepTo);
+    //PrintSweepInfo();
+    FindLinesFromSweep(true);
+    PrintSweepXY();
+  }
+  else if(SweepError)
+  {
+    sweepTo = 90;
+    sweepFrom = 0;
+    Serial.println("SWEEP ERROR");
+  }
 }
 
 
