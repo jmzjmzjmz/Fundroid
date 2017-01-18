@@ -114,19 +114,25 @@ void MoveMotorForward(float meters)
 {
   int stepsToMove = meters*stepsPerMeter;
 
-  MOTORCOMMPORT.print('1');
-  MOTORCOMMPORT.print(',');
-  MOTORCOMMPORT.print(stepsToMove);
-  MOTORCOMMPORT.print('&');
+  String First = "1,";
+  String last = "&";
+  String MoveForward = First + stepsToMove + last;
+
+  MOTORCOMMPORT.println(MoveForward);
+  Serial.print("Sending: ");
+  Serial.println(MoveForward);
 }
 
 int curSystemAngle = 0;
 void MoveMotorToAngle(int angle)
 {
-  MOTORCOMMPORT.print('0');
-  MOTORCOMMPORT.print(',');
-  MOTORCOMMPORT.print(angle);
-  MOTORCOMMPORT.print('&');
+  String First = "0,";
+  String last = "&";
+  String MoveAngle = First + angle + last;
+
+  MOTORCOMMPORT.println(MoveAngle);
+  Serial.print("Sending: ");
+  Serial.println(MoveAngle);
 
   curSystemAngle = angle;
 }
@@ -429,20 +435,64 @@ void Sweep(double fromAngle, double toAngle)
   }
 }
 
+int curWayPoint = 0;
+boolean DataSent = false;
 void loop()
 {
-  if(!SweepDone && !SweepError)
+  if(curWayPoint == 1)
   {
-    Sweep(sweepFrom, sweepTo);
-    //PrintSweepInfo();
-    FindLinesFromSweep(true);
-    PrintSweepXY();
+    if(!DataSent)
+    {
+      MoveMotorToAngle(75);
+      DataSent=true;
+    }
   }
-  else if(SweepError)
+  else if(curWayPoint == 2)
   {
-    sweepTo = 90;
-    sweepFrom = 0;
-    Serial.println("SWEEP ERROR");
+    if(!DataSent)
+    {
+      MoveMotorForward(1);
+      DataSent = true;
+    }
+  }
+  else if(curWayPoint == 3)
+  {
+    if(!DataSent)
+    {
+      MoveMotorToAngle(255);
+      DataSent = true;
+    }
+  }
+  else if(curWayPoint == 4)
+  {
+    if(!DataSent)
+    {
+      MoveMotorForward(1);
+      DataSent = true;
+    }
+  }
+  
+  // if(!SweepDone && !SweepError)
+  // {
+  //   Sweep(sweepFrom, sweepTo);
+  //   //PrintSweepInfo();
+  //   FindLinesFromSweep(true);
+  //   PrintSweepXY();
+  // }
+  // else if(SweepError)
+  // {
+  //   sweepTo = 90;
+  //   sweepFrom = 0;
+  //   Serial.println("SWEEP ERROR");
+  // }
+
+  if(CheckForMotionComplete())
+  {
+    // Move on to next motion
+    curWayPoint++;
+    DataSent = false;
+    Serial.print("Moving to Waypoint ");
+    Serial.println(curWayPoint);
   }
 }
 

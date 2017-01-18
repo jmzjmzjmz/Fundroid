@@ -273,7 +273,7 @@ int CheckForCommands()
   String ControlArgument;
 
   ReadStates state = ReadCommand;
-  if(COORDINATOR_PORT.available())
+  if(COORDINATOR_PORT.available() > 4)
   {
     while(COORDINATOR_PORT.available())
     {
@@ -487,7 +487,7 @@ void loop() {
 
   calcAngleCoordinates();
 
-  if(!inMotion && (millis() - lastTime) > heartBeatInterval)
+  if(!inMotion && isInitialized && (millis() - lastTime) > heartBeatInterval)
   {
     lastTime = millis();
     targetSet = false;
