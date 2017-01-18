@@ -19,7 +19,7 @@ void calcAngleCoordinates();
 void printInfo();
 void infoToProcessing();
 
-#define COORDINATOR_PORT Serial
+#define COORDINATOR_PORT Serial1
 enum MotorControls{RotateAbsolute = 0, MoveToPosition = 1, Stop = 2, Start = 3};
 enum MotorErrors{MotionComplete = 0, RotationFailure = 1, MoveToPositionFailure = 2};
 
@@ -419,6 +419,7 @@ void DelayAndReadBNO(long delayTime)
 
 void setup() {
 
+  Serial1.begin(9600);
   Serial.begin(9600);
  
   StartBNO();
@@ -488,6 +489,7 @@ void loop() {
   {
     targetSet = false;
     Serial.println("Motion Complete");
+    COORDINATOR_PORT.print('0');
   }
 
 }
