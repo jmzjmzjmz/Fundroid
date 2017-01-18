@@ -222,11 +222,15 @@ void setup()
   */
   myLidarLite.configure(0); // Change this number to try out alternate configurations
 
-  sweepTo = 180;
-  sweepFrom = 90;
+  FLUSHMOTORBUFFER();
 
 }
 
+///////////////////////////////////////////////////////////////////////////////////
+////////////////////// Begin line finding ///////////////////////////////////////////
+
+// Split the linear regresssion into 2 lines, and take the angle of the line with the highest RSquared
+// Then rescan to find the line
 void BinarySearchForBestLine(REAL x[], REAL y[], int n, double acceptableRSquared)
 {
   REAL x1[MAX_READS];
@@ -443,6 +447,9 @@ void Sweep(double fromAngle, double toAngle)
     }
   }
 }
+
+////////////////////// END LINE FINDING ////////////////////////////
+///////////////////////////////////////////////////////////////////
 
 
 
