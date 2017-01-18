@@ -150,6 +150,15 @@ boolean CheckForMotionComplete()
   return false;
 }
 
+void StopMotor()
+{
+  String theCmd = "2,0&";
+
+  MOTORCOMMPORT.println(theCmd);
+  Serial.print("Sending: ");
+  Serial.println(theCmd);
+}
+
 void FLUSHMOTORBUFFER()
 {
   while(MOTORCOMMPORT.available())
@@ -279,17 +288,21 @@ void BinarySearchForBestLine(REAL x[], REAL y[], int n, double acceptableRSquare
   Serial.println(sweepFrom);
 }
 
+double Angle = 0.0;
+double rSquared = 0.0;
+double acceptableRSquared = 0.90;
+
 double FindBestFitLineInDataSet(REAL x[], REAL y[], int n, int WallShouldBeOnRight)
 {
   int acceptableNumberOfReads = 3;
-  double acceptableRSquared = 0.90;
   double outlierThreshold = 30.0;
   int maxCycles = 5;
   REAL newX[MAX_READS];
   REAL newY[MAX_READS];
 
-  REAL m,b,r, rSquared;
+  REAL m,b,r;
   rSquared = 0.0;
+  Angle = 0.0;
   int lineStatus = linreg(n,x,y,&m,&b,&r);
 
   if(lineStatus == 1)
@@ -298,7 +311,7 @@ double FindBestFitLineInDataSet(REAL x[], REAL y[], int n, int WallShouldBeOnRig
   }
   else
   {
-    double Angle = atan(m)*180/3.14;
+    Angle = atan(m)*180/3.14;
     rSquared = r*r;
 
     Serial.print("Angle: ");
@@ -451,13 +464,42 @@ void Sweep(double fromAngle, double toAngle)
 ////////////////////// END LINE FINDING ////////////////////////////
 ///////////////////////////////////////////////////////////////////
 
-
-
 int curWayPoint = 0;
 boolean DataSent = false;
 boolean sweeping = false;
 boolean waitingForButton = false;
 boolean buttonPressed = false;
+
+double CorrectRightAngle = 8.0;
+double CorrectLeftAngle = 9.0;
+void DoCorrectionAngle(int findLineFrom, int findLineTo, boolean wallOnRight)
+{
+    if(!DataSent)
+    {
+      sweepFrom = findLineFrom;
+      sweepTo = findLineTo;
+      DataSent = true;
+      sweeping = true;
+    }
+
+    Sweep(sweepFrom, sweepTo);
+    PrintSweepXY();
+    FindLinesFromSweep(wallOnRight);
+
+    if(SweepDone)
+    {
+      DataSent = false;
+      sweeping = false;
+      if(!SweepError)
+      {
+        // Calculate new heading from detected angle
+        if(rSquared > acceptableRSquared)
+        {
+
+        }
+      }
+    }
+}
 
 void OnCompleteWayPoint()
 {
@@ -497,16 +539,17 @@ void loop()
   {
     if(!DataSent)
     {
-      sweepFrom = 100;
-      sweepTo = 180;
-      DataSent = true;
-      sweeping = true;
+      FLUSHMOTORBUFFER();
+      MoveMotorToAngle(345);
+      DataSent=true;
+      sweeping = false;
     }
-
-    Sweep(sweepFrom, sweepTo);
-    FindLinesFromSweep(true);
   }
   else if(curWayPoint == 4)
+  {
+    DoCorrectionAngle(0, 80, true);
+  }
+  else if(curWayPoint == 5)
   {
     if(!DataSent)
     {
@@ -516,7 +559,7 @@ void loop()
       sweeping = false;
     }
   }
-  else if(curWayPoint == 5)
+  else if(curWayPoint == 6)
   {
     if(!DataSent)
     {
