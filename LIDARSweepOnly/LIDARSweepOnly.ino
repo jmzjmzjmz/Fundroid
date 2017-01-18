@@ -513,62 +513,133 @@ void OnCompleteWayPoint()
   Serial.println(curWayPoint);
 }
 
+boolean ManualMode = false;
+void DoSerialCommands()
+{
+  if(Serial.available())
+  {
+    Serial.println("Received Command");
+    char cmdByte = Serial.read();
+    if(cmdByte == '0')
+    {
+      ManualMode = true;
+      int angleToMove = Serial.parseInt();
+      Serial.print("Move to angle ");
+      Serial.println(angleToMove);
+      MoveMotorToAngle(angleToMove);
+    }
+    else if(cmdByte == '1')
+    {
+      ManualMode = true;
+      float distToMove = Serial.parseFloat();
+      Serial.print("Move to Pos ");
+      Serial.println(distToMove);
+      MoveMotorForward(distToMove);
+    }
+    else if(cmdByte == '2')
+    {
+      ManualMode = true;
+      Serial.println("STOPPING BOT");
+      StopMotor();
+    }
+    else if(cmdByte == '3')
+    {
+      ManualMode = false;
+      Serial.println("Leaving Manual Mode");
+    }
+    else if(cmdByte == '4')
+    {
+      ManualMode = true;
+      sweepFrom = Serial.parseInt();
+    }
+    else if(cmdByte == '5')
+    {
+      ManualMode = true;
+      sweepTo = Serial.parseInt();
+    }
+    else if(cmdByte == '6')
+    {
+      manualMode = true;
+      DoCorrectionAngle(sweepFrom, sweepTo, true);
+    }
+    else if(cmdByte == '7')
+    {
+      manualMode = true;
+      DoCorrectionAngle(sweepFrom, sweepTo, false);
+    }
+  }
+}
+
 void loop()
 {
+  DoSerialCommands();
+
+  // if(curWayPoint == 0)
+  // {
+  //   DoCorrectionAngle(160, 200, true);
+  // }
+
   if(curWayPoint == 1)
   {
-    if(!DataSent)
+    if(!DataSent && !ManualMode)
     {
       FLUSHMOTORBUFFER();
       MoveMotorToAngle(75);
-      DataSent=true;
+      DataSent = true;
       sweeping = false;
     }
   }
   else if(curWayPoint == 2)
   {
-    if(!DataSent)
+    if(!DataSent && !ManualMode)
     {
       FLUSHMOTORBUFFER();
-      MoveMotorForward(1);
+      MoveMotorForward(2);
       DataSent = true;
       sweeping = false;
     }
   }
-  else if(curWayPoint == 3)
-  {
-    if(!DataSent)
-    {
-      FLUSHMOTORBUFFER();
-      MoveMotorToAngle(345);
-      DataSent=true;
-      sweeping = false;
-    }
-  }
-  else if(curWayPoint == 4)
-  {
-    DoCorrectionAngle(0, 80, true);
-  }
-  else if(curWayPoint == 5)
-  {
-    if(!DataSent)
-    {
-      FLUSHMOTORBUFFER();
-      MoveMotorToAngle(255);
-      DataSent = true;
-      sweeping = false;
-    }
-  }
-  else if(curWayPoint == 6)
-  {
-    if(!DataSent)
-    {
-      FLUSHMOTORBUFFER();
-      MoveMotorForward(1);
-      DataSent = true;
-      sweeping = false;
-    }
-  }
+  // else if(curWayPoint == 3)
+  // {
+  //   if(!DataSent)
+  //   {
+  //     FLUSHMOTORBUFFER();
+  //     MoveMotorToAngle(335);
+  //     DataSent=true;
+  //     sweeping = false;
+  //   }
+  // }
+  // else if(curWayPoint == 4)
+  // {
+  //   //DoCorrectionAngle(0, 80, true);
+  //   if(!DataSent)
+  //   {
+  //     FLUSHMOTORBUFFER();
+  //     MoveMotorForward(3.3);
+  //     DataSent = true;
+  //     sweeping = false;
+  //   }
+  // }
+  // else if(curWayPoint == 5)
+  // {
+  //   if(!DataSent)
+  //   {
+  //     FLUSHMOTORBUFFER();
+  //     MoveMotorToAngle(255);
+  //     DataSent = true;
+  //     sweeping = false;
+  //   }
+  // }
+  // else if(curWayPoint == 6)
+  // {
+  //   if(!DataSent)
+  //   {
+  //     FLUSHMOTORBUFFER();
+  //     MoveMotorForward(1);
+  //     DataSent = true;
+  //     sweeping = false;
+  //   }
+  // }
   
   // if(!SweepDone && !SweepError)
   // {
