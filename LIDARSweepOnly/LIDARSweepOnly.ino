@@ -581,7 +581,7 @@ void DoSerialCommands()
     else if(cmdByte == '9')
     {
       sweepFrom = 0;
-      sweepTo = 60;
+      sweepTo = 80;
       ManualMode = true;
       DoCorrectionAngle(sweepFrom, sweepTo, true);
     }
