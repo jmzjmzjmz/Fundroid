@@ -1,7 +1,3 @@
-#include <Wire.h>
-#include <Adafruit_Sensor.h>
-#include <Adafruit_BNO055.h>
-#include <utility/imumaths.h>
 
 // ProtoTypes
 boolean IsAngleAcceptable(int a);
@@ -20,6 +16,8 @@ void printInfo();
 void infoToProcessing();
 
 #define COORDINATOR_PORT Serial1
+#define ARDUPILOT_PORT Serial2
+
 enum MotorControls{RotateAbsolute = 0, MoveToPosition = 1, Stop = 2, Start = 3};
 enum MotorErrors{MotionComplete = 0, RotationFailure = 1, MoveToPositionFailure = 2};
 
@@ -27,120 +25,19 @@ int motionToDo = 0;
 int curPosition = 0;
 boolean isInitialized = false;
 
-#define BNO055_SAMPLERATE_DELAY_MS (50)
 
-Adafruit_BNO055 bno = Adafruit_BNO055();
-
-void SetCalibrationData(adafruit_bno055_offsets_t &calibData)
-{
-  calibData.accel_offset_x = 20;
-  calibData.accel_offset_y = 65454;
-  calibData.accel_offset_z = 0;
-
-  calibData.gyro_offset_x = 0;
-  calibData.gyro_offset_y = 65534;
-  calibData.gyro_offset_z = 65535;
-
-  calibData.mag_offset_x = 65354;
-  calibData.mag_offset_y = 221;
-  calibData.mag_offset_z = 65323;
-
-  calibData.accel_radius = 1000;
-  calibData.mag_radius = 839;
-}
-
-void WaitForCalibrationComplete()
-{
-  int numberConsecutiveReads = 3;
-  int numReads = 0;
-  /* Display calibration status for each sensor. */
-  uint8_t system, gyro, accel, mag = 0;
-
-  while(numReads != numberConsecutiveReads)
-  {
-    bno.getCalibration(&system, &gyro, &accel, &mag);
-    Serial.print("Continue when Mag == 3... Currently Mag=");
-    Serial.println(mag, DEC);
-    delay(BNO055_SAMPLERATE_DELAY_MS);
-
-    if(mag == 3)
-    {
-      numReads++;
-    }
-    else
-    {
-      numReads = 0;
-    }
-  }
-  
-}
-
-void StartBNO()
-{
-  if(!bno.begin(Adafruit_BNO055::OPERATION_MODE_COMPASS))
-  {
-    Serial.print("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
-    while(1);
-  }
-
-  delay(1000);
-
-  adafruit_bno055_offsets_t calibrationData;
-  SetCalibrationData(calibrationData);
-  bno.setSensorOffsets(calibrationData);
-
-  bno.setExtCrystalUse(true);
-
-  WaitForCalibrationComplete();
-}
-
-long lastBNORead = 0;
-long nextBNORead = BNO055_SAMPLERATE_DELAY_MS;
 float curBNOHeading = 0;
 float lastBNOHeading = 0;
-void ReadBNO()
+void ReadCompass()
 {
-  if(millis() - lastBNORead > nextBNORead)
-  {
-    // Possible vector values can be:
-    // - VECTOR_ACCELEROMETER - m/s^2
-    // - VECTOR_MAGNETOMETER  - uT
-    // - VECTOR_GYROSCOPE     - rad/s
-    // - VECTOR_EULER         - degrees
-    // - VECTOR_LINEARACCEL   - m/s^2
-    // - VECTOR_GRAVITY       - m/s^2
-    if(!isInitialized)
-    {
-      imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
+  if(ARDUPILOT_PORT.available() > 0){
 
-      /* Display the floating point data */
-      Serial.print("X: ");
-      Serial.print(euler.x());
-      Serial.print(" Y: ");
-      Serial.print(euler.y());
-      Serial.print(" Z: ");
-      Serial.print(euler.z());
-      Serial.println("\t\t");
+    curBNOHeading = ARDUPILOT_PORT.parseFloat();
+    Serial.print("ARDU READING: ");
+    Serial.println(curBNOHeading);
 
-      curBNOHeading = euler.x();
-    }
-    else
-    {
-      sensors_event_t event;
-      bno.getEvent(&event);
-      Serial.print(F("Orientation: "));
-      Serial.print((float)event.orientation.x);
-      Serial.print(F(" "));
-      Serial.print((float)event.orientation.y);
-      Serial.print(F(" "));
-      Serial.print((float)event.orientation.z);
-      Serial.println(F(""));
-
-      curBNOHeading = event.orientation.x;
-    }
-
-    lastBNORead = millis();
   }
+
 }
 
 
@@ -312,7 +209,7 @@ int CheckForCommands()
 
 boolean IsInitializeAngleClose()
 {
-  if(curBNOHeading > 357.0 || curBNOHeading < 3.0)
+  if(curBNOHeading > 355.0 || curBNOHeading < 5.0)
     return true;
 
   return false;
@@ -381,7 +278,7 @@ void InitializeBot()
 
   while(!isInitialized)
   {
-    ReadBNO();
+    ReadCompass();
 
     if(lessThan180 && curBNOHeading > 180)
     {
@@ -399,7 +296,6 @@ void InitializeBot()
       StopBot();
       botAngle = 0;
       isInitialized = true;
-      bno.begin();
       Serial.println("Initialization Complete. Continuing in 2 seconds");
       delay(2000);
     }
@@ -413,16 +309,16 @@ void DelayAndReadBNO(long delayTime)
   long curTime = millis();
   while(millis() < curTime + delayTime)
   {
-    ReadBNO();
+    ReadCompass();
   }
 }
 
 void setup() {
 
-  Serial1.begin(9600);
+  COORDINATOR_PORT.begin(9600);
+  ARDUPILOT_PORT.begin(115200);
   Serial.begin(9600);
  
-  StartBNO();
  
   //Motor Controls
   pinMode (dirPinR, OUTPUT);
@@ -467,7 +363,7 @@ void loop() {
 //printInfo();            //nice looking display w labels
 //infoToProcessing();       //CSV for processing
 
-  ReadBNO();
+  ReadCompass();
 
   if(!isInitialized)
   {
@@ -499,7 +395,7 @@ void loop() {
 
 boolean IsAnglePreNudgeAcceptable(int a)
 {
-  if(a+4 > botAngle*57.3 && a-4 < botAngle*57.3)
+  if(a+2 > botAngle*(180/PI) && a-2 < botAngle*(180/PI))
   {
     return true;
   }
@@ -507,10 +403,9 @@ boolean IsAnglePreNudgeAcceptable(int a)
   return false;
 }
 
-int marginOfError = 1;
 boolean IsAngleAcceptable(int a)
 {
-  if(a+1.5 > botAngle*57.3 && a-1.5 < botAngle*57.3)
+  if(a+0.5 > botAngle*(180/PI) && a-0.5 < botAngle*(180/PI))
   {
     return true;
   }
@@ -537,7 +432,7 @@ int GetSpeedValue(int curTicks, int destTicks)
 
 boolean ShouldRotateCCW(int a)
 {
-  float curBotAngleD = botAngle*57.3;
+  float curBotAngleD = botAngle*(180/PI);
 
   boolean CCWRotate = true;
 
@@ -567,21 +462,21 @@ void nudgeToAngle(int a)
   boolean CCWRotate = ShouldRotateCCW(a);
 
   float kp = 2;
-  float botAngleDegree = botAngle*57.3;
+  float botAngleDegree = botAngle*(180/PI);
   float diff = abs(botAngle-a);
 
 
   if(CCWRotate)
   {
     RotateBotCCW();
-    DelayAndReadBNO(100);
+    DelayAndReadBNO(25);
     // DelayAndReadBNO(kp*diff);
     StopBot();
   }
   else
   {
     RotateBotCW();
-    DelayAndReadBNO(100);
+    DelayAndReadBNO(25);
     //DelayAndReadBNO(kp*diff);
     StopBot();
   }
@@ -594,7 +489,7 @@ void goToAngle(int a){
 
   CorrectAngle = (float)a;
 
-  Serial.println(botAngle*57.3);
+  Serial.println(botAngle*(180/PI));
 
   if(IsAnglePreNudgeAcceptable(a) && !enterNudgeSequence)
   {
@@ -826,7 +721,7 @@ void newTarget(int x){
 
 int GetDesiredWheelTicks(float deltaAngle)
 {
-  deltaAngle = botAngle*57.3 - deltaAngle;
+  deltaAngle = botAngle*(180/PI) - deltaAngle;
   
   int desiredWheelTicks = ((deltaAngle*wheelBase)/2) / stepDist;
 
@@ -847,7 +742,7 @@ void calcAngleCoordinates() {
   if(curBNOHeading != lastBNOHeading)
   {
     lastBNOHeading = curBNOHeading;
-    botAngle = curBNOHeading/57.3;
+    botAngle = curBNOHeading/(180/PI);
   }
   
   rWheelChange = 0;
@@ -868,7 +763,7 @@ void printInfo() {
   Serial.print(rWheelChange);
 
   Serial.print("  botAngle(degrees): ");
-  Serial.print((botAngle*57.3));
+  Serial.print((botAngle*(180/PI)));
   Serial.print("    botX: ");
   Serial.print(botX/100);
   Serial.print("    botY: ");
@@ -883,7 +778,7 @@ void infoToProcessing(){
     Serial.print(",");
     Serial.print(botY/100, DEC);
     Serial.print(",");
-    Serial.println((botAngle*57.3), DEC);
+    Serial.println((botAngle*(180/PI)), DEC);
  
 }
 

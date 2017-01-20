@@ -597,47 +597,47 @@ void loop()
   //   DoCorrectionAngle(160, 200, true);
   // }
 
-  // if(curWayPoint == 1)
-  // {
-  //   if(!DataSent && !ManualMode)
-  //   {
-  //     FLUSHMOTORBUFFER();
-  //     MoveMotorToAngle(80);
-  //     DataSent = true;
-  //     sweeping = false;
-  //   }
-  // }
-  // else if(curWayPoint == 2)
-  // {
-  //   if(!DataSent && !ManualMode)
-  //   {
-  //     FLUSHMOTORBUFFER();
-  //     MoveMotorForward(2);
-  //     DataSent = true;
-  //     sweeping = false;
-  //   }
-  // }
-  // else if(curWayPoint == 3)
-  // {
-  //   if(!DataSent)
-  //   {
-  //     FLUSHMOTORBUFFER();
-  //     MoveMotorToAngle(170);
-  //     DataSent=true;
-  //     sweeping = false;
-  //   }
-  // }
-  // else if(curWayPoint == 4)
-  // {
-  //   //DoCorrectionAngle(0, 80, true);
-  //   if(!DataSent)
-  //   {
-  //     FLUSHMOTORBUFFER();
-  //     MoveMotorForward(2);
-  //     DataSent = true;
-  //     sweeping = false;
-  //   }
-  // }
+   if(curWayPoint == 1)
+   {
+     if(!DataSent && !ManualMode)
+     {
+       FLUSHMOTORBUFFER();
+       MoveMotorToAngle(70);
+       DataSent = true;
+       sweeping = false;
+     }
+   }
+   else if(curWayPoint == 2)
+   {
+     if(!DataSent && !ManualMode)
+     {
+       FLUSHMOTORBUFFER();
+       MoveMotorForward(4);
+       DataSent = true;
+       sweeping = false;
+     }
+   }
+//   else if(curWayPoint == 3)
+//   {
+//     if(!DataSent)
+//     {
+//       FLUSHMOTORBUFFER();
+//       MoveMotorToAngle(235);
+//       DataSent=true;
+//       sweeping = false;
+//     }
+//   }
+//   else if(curWayPoint == 4)
+//   {
+//     //DoCorrectionAngle(0, 80, true);
+//     if(!DataSent)
+//     {
+//       FLUSHMOTORBUFFER();
+//       MoveMotorForward(3);
+//       DataSent = true;
+//       sweeping = false;
+//     }
+//   }
   // else if(curWayPoint == 5)
   // {
   //   if(!DataSent)

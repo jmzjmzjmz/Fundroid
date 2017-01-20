@@ -21,12 +21,17 @@ STREAM_DATA streamData;
 
 boolean set = false;
 
+#define USB Serial
+#define APM Serial1
+#define CONDUCTOR Serial2
+
 
 void setup() {
-  Serial.begin(115200);
-  Serial1.begin(57600);
-  delay(1000);
-  Serial.println("Starting up...");
+  USB.begin(115200);
+  APM.begin(57600);
+  CONDUCTOR.begin(115200);
+  
+  delay(500);
 
 }
 
@@ -39,9 +44,9 @@ void comm_receive() {
   mavlink_message_t msg;
   mavlink_status_t status;
   //receive data over serial
-  while (Serial1.available() > 0) {
+  while (APM.available() > 0) {
 
-    if (mavlink_parse_char(MAVLINK_COMM_0, Serial1.read(), &msg, &status)) {
+    if (mavlink_parse_char(MAVLINK_COMM_0, APM.read(), &msg, &status)) {
       // Handle message
       switch (msg.msgid) {
         case MAVLINK_MSG_ID_HEARTBEAT: {
@@ -57,22 +62,22 @@ void comm_receive() {
             
             
             
-//                        Serial.print("gps_sats: ");
-//                        Serial.println(streamData.gps_sats);
-//                        Serial.print("gps_lon: ");
-//                        Serial.println(streamData.gps_lon);
-//                        Serial.print("gps_latsats: ");
-//                        Serial.println(streamData.gps_lat);
-//                        Serial.print("gps_speed: ");
-//                        Serial.println(streamData.gps_speed);
+//                        USB.print("gps_sats: ");
+//                        USB.println(streamData.gps_sats);
+//                        USB.print("gps_lon: ");
+//                        USB.println(streamData.gps_lon);
+//                        USB.print("gps_latsats: ");
+//                        USB.println(streamData.gps_lat);
+//                        USB.print("gps_speed: ");
+//                        USB.println(streamData.gps_speed);
             
             if (!streamData.gps_fix) {
               if (mavlink_msg_gps_raw_int_get_fix_type(&msg) >= 3) {
 
-                Serial.print("Setting home location: ");
-                Serial.print(streamData.gps_lon);
-                Serial.print("/");
-                Serial.println(streamData.gps_lat);
+//                USB.print("Setting home location: ");
+//                USB.print(streamData.gps_lon);
+//                USB.print("/");
+//                USB.println(streamData.gps_lat);
                 streamData.gps_fix = true;
                 streamData.home_lon =  streamData.gps_lon;
                 streamData.home_lat =  streamData.gps_lat;
@@ -99,7 +104,10 @@ void comm_receive() {
               deg = 180 - abs(deg);
               deg = 180 + deg;
             }
-            Serial.println(deg);
+            
+            USB.println(deg);
+            CONDUCTOR.println(deg);
+            
             break;
           }
 
@@ -132,61 +140,61 @@ float calc_dist(float lat1, float long1, float lat2, float long2) {
   }
 }
 
-void set1() {
-
-  int  alt = streamData.altitude * 10;
-  byte  altHi = highByte(alt )  ;
-  byte  altLo =  lowByte(alt ) ;
-
-  int  yaw = streamData.yaw * 100;
-  byte yawHi = highByte(yaw );
-  byte yawLo = lowByte(yaw );
-
-
-  int  speed2 = streamData.gps_speed * 10;
-  byte speedHi = highByte(speed2);
-  byte speedLo = lowByte(speed2);
-
-
-  int  roll = streamData.roll * 10;
-  byte rollHi = highByte(roll);
-  byte rollLo = lowByte(roll);
-
-
-  int  pitch = streamData.pitch * 10;
-  byte pitchHi = highByte(pitch);
-  byte pitchLo = lowByte(pitch);
-
-  int distance = calc_dist(streamData.gps_lat, streamData.gps_lon, streamData.home_lat, streamData.home_lon) * 100;
-  byte distanceHi = highByte(distance);
-  byte distanceLo = lowByte(distance);
-
-  byte buffer[16] = {0x89, 0xAB, streamData.gps_sats, altHi, altLo, yawHi, yawLo, speedHi, speedLo, rollHi , rollLo, pitchHi, pitchLo, distanceHi, distanceLo, 0x00};
-  Serial.write(buffer, 16);
-}
-void set2() {
-
-  int  rise = streamData.climb * 10;
-  byte  riseHi = highByte(rise);
-  byte  riseLo =  lowByte(rise);
-
-  byte voltesHi = highByte(streamData.battVoltage);
-  byte voltesLo = lowByte(streamData.battVoltage);
-
-  float lat = 40.689060;
-  float log = -74.044636;
-
-  byte buffer[16] = {0x89, 0xCD, streamData.gps_sats, riseHi, riseLo, voltesHi, voltesLo,/**/ 0x0, 0x0, 0x0 , 0x0, /**/0x0, 0x0, 0x0, 0x0,/**/ 0x00};
-  Serial.write(buffer, 16);
-}
-
-
-void onRequest() {
-  if (set) {
-    set = false;
-    set1();
-  } else {
-    set = true;
-    set2();
-  }
-}
+//void set1() {
+//
+//  int  alt = streamData.altitude * 10;
+//  byte  altHi = highByte(alt )  ;
+//  byte  altLo =  lowByte(alt ) ;
+//
+//  int  yaw = streamData.yaw * 100;
+//  byte yawHi = highByte(yaw );
+//  byte yawLo = lowByte(yaw );
+//
+//
+//  int  speed2 = streamData.gps_speed * 10;
+//  byte speedHi = highByte(speed2);
+//  byte speedLo = lowByte(speed2);
+//
+//
+//  int  roll = streamData.roll * 10;
+//  byte rollHi = highByte(roll);
+//  byte rollLo = lowByte(roll);
+//
+//
+//  int  pitch = streamData.pitch * 10;
+//  byte pitchHi = highByte(pitch);
+//  byte pitchLo = lowByte(pitch);
+//
+//  int distance = calc_dist(streamData.gps_lat, streamData.gps_lon, streamData.home_lat, streamData.home_lon) * 100;
+//  byte distanceHi = highByte(distance);
+//  byte distanceLo = lowByte(distance);
+//
+//  byte buffer[16] = {0x89, 0xAB, streamData.gps_sats, altHi, altLo, yawHi, yawLo, speedHi, speedLo, rollHi , rollLo, pitchHi, pitchLo, distanceHi, distanceLo, 0x00};
+//  Serial.write(buffer, 16);
+//}
+//void set2() {
+//
+//  int  rise = streamData.climb * 10;
+//  byte  riseHi = highByte(rise);
+//  byte  riseLo =  lowByte(rise);
+//
+//  byte voltesHi = highByte(streamData.battVoltage);
+//  byte voltesLo = lowByte(streamData.battVoltage);
+//
+//  float lat = 40.689060;
+//  float log = -74.044636;
+//
+//  byte buffer[16] = {0x89, 0xCD, streamData.gps_sats, riseHi, riseLo, voltesHi, voltesLo,/**/ 0x0, 0x0, 0x0 , 0x0, /**/0x0, 0x0, 0x0, 0x0,/**/ 0x00};
+//  Serial.write(buffer, 16);
+//}
+//
+//
+//void onRequest() {
+//  if (set) {
+//    set = false;
+//    set1();
+//  } else {
+//    set = true;
+//    set2();
+//  }
+//}
